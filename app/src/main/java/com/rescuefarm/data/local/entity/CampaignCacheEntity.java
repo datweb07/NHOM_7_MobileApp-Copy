@@ -1,0 +1,28 @@
+package com.rescuefarm.data.local.entity;
+
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "campaign_cache")
+public class CampaignCacheEntity {
+    @PrimaryKey
+    @NonNull
+    public String id;
+    public String sellerId;
+    public String title;
+    public String rescueReason;
+    public String urgencyLevel;
+    public String rescueMode;
+    public double targetQuantity;
+    public double reservedQuantity;
+    public double rescuedQuantity;
+    public double currentLatitude;
+    public double currentLongitude;
+    public long locationUpdatedAtEpochMillis;
+    public boolean locationSharingEnabled;
+    public String status;
+    public long cachedAtEpochMillis;
+
+    public CampaignCacheEntity(@NonNull String id) { this.id = id; }
+}

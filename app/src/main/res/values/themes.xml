@@ -1,0 +1,17 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.RescueFarm" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/rescue_primary</item>
+        <item name="colorOnPrimary">@color/rescue_on_primary</item>
+        <item name="colorPrimaryContainer">@color/rescue_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/rescue_on_primary_container</item>
+        <item name="colorSecondary">@color/rescue_secondary</item>
+        <item name="android:colorBackground">@color/rescue_background</item>
+        <item name="colorSurface">@color/rescue_surface</item>
+        <item name="colorOnSurface">@color/rescue_on_surface</item>
+        <item name="colorOutline">@color/rescue_outline</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+
+    <style name="Theme.RescueFarm" parent="Base.Theme.RescueFarm" />
+</resources>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/rescue_background"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="@dimen/space_lg">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/login_placeholder_title"
+        android:textColor="@color/rescue_on_surface"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        android:gravity="center"
+        android:text="@string/login_placeholder_body"
+        android:textColor="@color/rescue_on_surface_variant"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/continueAsGuestButton"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/touch_target_min"
+        android:layout_marginTop="@dimen/space_lg"
+        android:text="@string/continue_guest_action" />
+</LinearLayout>

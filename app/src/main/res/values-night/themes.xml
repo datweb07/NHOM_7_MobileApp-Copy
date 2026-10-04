@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.RescueFarm" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/rescue_primary_container</item>
+        <item name="colorOnPrimary">@color/rescue_on_primary_container</item>
+        <item name="colorSecondary">@color/rescue_secondary</item>
+    </style>
+</resources>

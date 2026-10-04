@@ -1,0 +1,49 @@
+package com.rescuefarm.ui.home;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
+
+import com.rescuefarm.R;
+
+public class GuestHomeFragment extends Fragment {
+
+    @Nullable
+    @Override
+    public View onCreateView(
+            @NonNull LayoutInflater inflater,
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState
+    ) {
+        return inflater.inflate(R.layout.fragment_guest_home, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        TextView foundationMessage = view.findViewById(R.id.foundationMessage);
+        HomeViewModel viewModel = new ViewModelProvider(this).get(HomeViewModel.class);
+
+        viewModel.getHomeState().observe(getViewLifecycleOwner(), state -> {
+            if (state.getMessage() != null) {
+                foundationMessage.setText(state.getMessage());
+            } else {
+                foundationMessage.setText(R.string.foundation_message);
+            }
+        });
+
+        view.findViewById(R.id.loginButton).setOnClickListener(
+                Navigation.createNavigateOnClickListener(
+                        R.id.action_guestHomeFragment_to_loginEntryFragment
+                )
+        );
+    }
+}

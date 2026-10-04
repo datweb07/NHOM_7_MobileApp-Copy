@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">RescueFarm</string>
+    <string name="home_eyebrow">NÔNG SẢN CẦN BẠN</string>
+    <string name="home_title">Cùng giải cứu\nhôm nay</string>
+    <string name="home_subtitle">Khám phá những lô nông sản đang cần được tiêu thụ kịp thời.</string>
+    <string name="urgent_section">Cần giải cứu gấp</string>
+    <string name="mobile_section">Điểm giải cứu di động gần bạn</string>
+    <string name="foundation_message">Nền tảng đã sẵn sàng. Dữ liệu thật sẽ được kết nối ở các phase tiếp theo.</string>
+    <string name="login_action">Đăng nhập</string>
+    <string name="continue_guest_action">Tiếp tục với tư cách khách</string>
+    <string name="login_placeholder_title">Đăng nhập RescueFarm</string>
+    <string name="login_placeholder_body">Firebase Authentication sẽ được triển khai ở Phase 2.</string>
+    <string name="back_to_home_action">Về trang chủ</string>
+    <string name="status_critical">CRITICAL</string>
+    <string name="status_mobile">MOBILE POINT</string>
+</resources>

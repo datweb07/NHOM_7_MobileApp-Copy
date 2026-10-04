@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_navigation"
+    app:startDestination="@id/guestHomeFragment">
+
+    <fragment
+        android:id="@+id/guestHomeFragment"
+        android:name="com.rescuefarm.ui.home.GuestHomeFragment"
+        android:label="@string/app_name">
+        <action
+            android:id="@+id/action_guestHomeFragment_to_loginEntryFragment"
+            app:destination="@id/loginEntryFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/loginEntryFragment"
+        android:name="com.rescuefarm.ui.auth.LoginEntryFragment"
+        android:label="@string/login_action">
+        <action
+            android:id="@+id/action_loginEntryFragment_to_guestHomeFragment"
+            app:destination="@id/guestHomeFragment"
+            app:popUpTo="@id/guestHomeFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+</navigation>
