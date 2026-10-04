@@ -18,6 +18,58 @@ public class Address {
 
     public Address() { }
 
+    public Address(
+            String id,
+            String customerId,
+            String receiverName,
+            String receiverPhone,
+            String province,
+            String district,
+            String ward,
+            String street,
+            double latitude,
+            double longitude,
+            AddressType type,
+            boolean isDefault
+    ) {
+        this.id = id;
+        this.customerId = customerId;
+        updateDetails(receiverName, receiverPhone, province, district, ward, street,
+                latitude, longitude, type);
+        this.isDefault = isDefault;
+    }
+
+    public void updateDetails(
+            String receiverName,
+            String receiverPhone,
+            String province,
+            String district,
+            String ward,
+            String street,
+            double latitude,
+            double longitude,
+            AddressType type
+    ) {
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            throw new IllegalArgumentException("Invalid coordinates");
+        }
+        this.receiverName = clean(receiverName);
+        this.receiverPhone = clean(receiverPhone);
+        this.province = clean(province);
+        this.district = clean(district);
+        this.ward = clean(ward);
+        this.street = clean(street);
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.type = type == null ? AddressType.HOME : type;
+    }
+
+    public String getFormattedAddress() {
+        return street + ", " + ward + ", " + district + ", " + province;
+    }
+
+    private String clean(String value) { return value == null ? "" : value.trim(); }
+
     public void setDefault() { isDefault = true; }
     public void clearDefault() { isDefault = false; }
     public String getId() { return id; }

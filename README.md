@@ -9,3 +9,8 @@
 | Nguyễn Phương Chinh ([chinhngprit](https://github.com/chinhngprit))            | Member      |
 | Phan Khắc Anh Tuấn ([KhacTuan1224](https://github.com/KhacTuan1224))           | Member      |
 | Nguyễn Tấn Khiêm ([nguyentankhiem1610](https://github.com/nguyentankhiem1610)) | Member      |
+
+## Setup guides
+
+- [Firebase Authentication](docs/FIREBASE_SETUP.md)
+- [Phase 3 profile, address, seller application, and location](docs/PHASE3_SETUP.md)

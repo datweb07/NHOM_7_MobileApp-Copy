@@ -30,6 +30,28 @@ public abstract class User {
         this.role = role;
     }
 
+    public void updateProfile(
+            String fullName,
+            String phone,
+            String avatarUrl,
+            double latitude,
+            double longitude,
+            Date updatedAt
+    ) {
+        if (fullName == null || fullName.trim().length() < 2) {
+            throw new IllegalArgumentException("Full name is required");
+        }
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            throw new IllegalArgumentException("Invalid coordinates");
+        }
+        this.fullName = fullName.trim();
+        this.phone = phone == null ? "" : phone.trim();
+        this.avatarUrl = avatarUrl == null ? "" : avatarUrl.trim();
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.updatedAt = updatedAt == null ? new Date() : new Date(updatedAt.getTime());
+    }
+
     public boolean isActive() { return status == UserStatus.ACTIVE; }
     public String getId() { return id; }
     public String getEmail() { return email; }

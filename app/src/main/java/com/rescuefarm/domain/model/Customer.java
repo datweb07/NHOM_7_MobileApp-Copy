@@ -15,6 +15,12 @@ public class Customer extends User {
         this.customerType = customerType;
     }
 
+    public void updateCustomerDetails(CustomerType customerType, String companyName, String taxCode) {
+        this.customerType = customerType == null ? CustomerType.INDIVIDUAL : customerType;
+        this.companyName = companyName == null ? "" : companyName.trim();
+        this.taxCode = taxCode == null ? "" : taxCode.trim();
+    }
+
     public CustomerType getCustomerType() { return customerType; }
     public String getCompanyName() { return companyName; }
     public String getTaxCode() { return taxCode; }

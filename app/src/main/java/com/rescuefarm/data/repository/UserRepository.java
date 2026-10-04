@@ -3,18 +3,45 @@ package com.rescuefarm.data.repository;
 import androidx.lifecycle.LiveData;
 
 import com.rescuefarm.domain.enums.UserRole;
+import com.rescuefarm.domain.model.Address;
+import com.rescuefarm.domain.model.SellerApplication;
 import com.rescuefarm.domain.model.User;
+
+import java.util.List;
 
 public interface UserRepository {
     enum ProfileError {
         NOT_FOUND,
         DISABLED,
+        PERMISSION_DENIED,
+        CONFLICT,
+        VALIDATION,
         NETWORK,
         UNKNOWN
     }
 
     interface UserCallback {
         void onSuccess(User user);
+        void onError(ProfileError error, String message);
+    }
+
+    interface AddressListCallback {
+        void onSuccess(List<Address> addresses);
+        void onError(ProfileError error, String message);
+    }
+
+    interface AddressCallback {
+        void onSuccess(Address address);
+        void onError(ProfileError error, String message);
+    }
+
+    interface ApplicationCallback {
+        void onSuccess(SellerApplication application);
+        void onError(ProfileError error, String message);
+    }
+
+    interface ActionCallback {
+        void onSuccess();
         void onError(ProfileError error, String message);
     }
 
@@ -28,5 +55,33 @@ public interface UserRepository {
             String avatarUrl,
             UserRole role,
             UserCallback callback
+    );
+    void updateProfile(
+            String userId,
+            String fullName,
+            String phone,
+            String avatarUrl,
+            double latitude,
+            double longitude,
+            UserCallback callback
+    );
+    void updateSellerProfile(
+            String sellerId,
+            String representativeName,
+            String shopName,
+            String shopDescription,
+            String shopAvatarUrl,
+            String address,
+            UserCallback callback
+    );
+    void getAddresses(String customerId, AddressListCallback callback);
+    void saveAddress(String customerId, Address address, AddressCallback callback);
+    void setDefaultAddress(String customerId, String addressId, ActionCallback callback);
+    void deleteAddress(String customerId, String addressId, ActionCallback callback);
+    void getSellerApplication(String sellerId, ApplicationCallback callback);
+    void submitSellerApplication(
+            String sellerId,
+            SellerApplication application,
+            ApplicationCallback callback
     );
 }

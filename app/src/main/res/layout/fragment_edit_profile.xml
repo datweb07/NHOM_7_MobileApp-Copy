@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:background="@color/rescue_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_lg">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/edit_profile_title" android:textAppearance="@style/TextAppearance.RescueFarm.Display" />
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_lg" android:hint="@string/full_name_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/editFullNameInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textPersonName" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_md" android:hint="@string/phone_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/editPhoneInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="phone" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_md" android:hint="@string/avatar_url_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/editAvatarInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textUri" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <TextView android:id="@+id/profileLocationText" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_md" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/useProfileLocationButton"
+            style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/use_current_location_action" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/saveProfileButton"
+            android:layout_width="match_parent" android:layout_height="@dimen/touch_target_min"
+            android:layout_marginTop="@dimen/space_md" android:text="@string/save_action" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

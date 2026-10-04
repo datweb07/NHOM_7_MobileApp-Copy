@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/rescue_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_lg">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/address_editor_title" android:textAppearance="@style/TextAppearance.RescueFarm.Display" />
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_lg"
+            android:hint="@string/receiver_name_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/receiverNameInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textPersonName" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/receiver_phone_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/receiverPhoneInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="phone" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/province_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/provinceInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/district_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/districtInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/ward_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/wardInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/street_label">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/streetInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <RadioGroup android:id="@+id/addressTypeGroup" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm" android:orientation="horizontal">
+            <com.google.android.material.radiobutton.MaterialRadioButton android:id="@+id/addressTypeHome"
+                android:layout_width="0dp" android:layout_height="@dimen/touch_target_min" android:layout_weight="1"
+                android:checked="true" android:text="@string/address_home" />
+            <com.google.android.material.radiobutton.MaterialRadioButton android:id="@+id/addressTypeWork"
+                android:layout_width="0dp" android:layout_height="@dimen/touch_target_min" android:layout_weight="1"
+                android:text="@string/address_work" />
+            <com.google.android.material.radiobutton.MaterialRadioButton android:id="@+id/addressTypeOther"
+                android:layout_width="0dp" android:layout_height="@dimen/touch_target_min" android:layout_weight="1"
+                android:text="@string/address_other" />
+        </RadioGroup>
+        <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/defaultAddressCheck"
+            android:layout_width="match_parent" android:layout_height="@dimen/touch_target_min"
+            android:text="@string/default_address_label" />
+        <TextView android:id="@+id/addressLocationText" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/useAddressLocationButton"
+            style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/use_current_location_action" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/saveAddressButton"
+            android:layout_width="match_parent" android:layout_height="@dimen/touch_target_min"
+            android:layout_marginTop="@dimen/space_md" android:text="@string/save_address_action" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

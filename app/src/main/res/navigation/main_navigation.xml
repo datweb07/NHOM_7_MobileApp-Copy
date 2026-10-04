@@ -48,6 +48,9 @@
         <action
             android:id="@+id/action_guestHomeFragment_to_loginFragment"
             app:destination="@id/loginFragment" />
+        <action
+            android:id="@+id/action_guestHomeFragment_to_profileFragment"
+            app:destination="@id/profileFragment" />
     </fragment>
 
     <fragment
@@ -82,4 +85,31 @@
         android:id="@+id/forgotPasswordFragment"
         android:name="com.rescuefarm.ui.auth.ForgotPasswordFragment"
         android:label="@string/forgot_password_title" />
+
+    <fragment android:id="@+id/profileFragment"
+        android:name="com.rescuefarm.ui.profile.ProfileFragment" android:label="@string/profile_title">
+        <action android:id="@+id/action_profileFragment_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
+        <action android:id="@+id/action_profileFragment_to_addressListFragment"
+            app:destination="@id/addressListFragment" />
+        <action android:id="@+id/action_profileFragment_to_sellerProfileFragment"
+            app:destination="@id/sellerProfileFragment" />
+    </fragment>
+    <fragment android:id="@+id/editProfileFragment"
+        android:name="com.rescuefarm.ui.profile.EditProfileFragment" android:label="@string/edit_profile_title" />
+    <fragment android:id="@+id/addressListFragment"
+        android:name="com.rescuefarm.ui.profile.AddressListFragment" android:label="@string/address_list_title">
+        <action android:id="@+id/action_addressListFragment_to_addressEditorFragment"
+            app:destination="@id/addressEditorFragment" />
+    </fragment>
+    <fragment android:id="@+id/addressEditorFragment"
+        android:name="com.rescuefarm.ui.profile.AddressEditorFragment" android:label="@string/address_editor_title" />
+    <fragment android:id="@+id/sellerProfileFragment"
+        android:name="com.rescuefarm.ui.profile.SellerProfileFragment" android:label="@string/seller_profile_title">
+        <action android:id="@+id/action_sellerProfileFragment_to_sellerApplicationFragment"
+            app:destination="@id/sellerApplicationFragment" />
+    </fragment>
+    <fragment android:id="@+id/sellerApplicationFragment"
+        android:name="com.rescuefarm.ui.profile.SellerApplicationFragment"
+        android:label="@string/seller_application_title" />
 </navigation>

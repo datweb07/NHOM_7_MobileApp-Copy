@@ -10,6 +10,11 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function hasRole(userId, role) {
+      return isOwner(userId)
+          && get(/databases/$(database)/documents/users/$(userId)).data.role == role;
+    }
+
     function hasNoCredentialFields(data) {
       return !data.keys().hasAny(['password', 'passwordHash', 'rawPassword']);
     }
@@ -17,6 +22,26 @@ service cloud.firestore {
     function hasValidSelfRegistrationRole(data) {
       return data.role == 'CUSTOMER'
           || (data.role == 'SELLER' && data.sellerStatus == 'PENDING_APPROVAL');
+    }
+
+    function validAddress(data, userId) {
+      return data.customerId == userId
+          && data.receiverName is string
+          && data.receiverName.size() >= 2
+          && data.receiverPhone is string
+          && data.receiverPhone.size() >= 9
+          && data.province is string
+          && data.district is string
+          && data.ward is string
+          && data.street is string
+          && data.type in ['HOME', 'WORK', 'OTHER']
+          && data.isDefault is bool
+          && data.latitude is number
+          && data.latitude >= -90
+          && data.latitude <= 90
+          && data.longitude is number
+          && data.longitude >= -180
+          && data.longitude <= 180;
     }
 
     match /users/{userId} {
@@ -33,8 +58,45 @@ service cloud.firestore {
           && request.resource.data.id == resource.data.id
           && request.resource.data.role == resource.data.role
           && request.resource.data.status == resource.data.status
+          && (resource.data.role != 'SELLER'
+              || request.resource.data.sellerStatus == resource.data.sellerStatus)
+          && (resource.data.role == 'SELLER'
+              || !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                'representativeName', 'shopName', 'shopDescription', 'shopAvatarUrl', 'address'
+              ]))
           && hasNoCredentialFields(request.resource.data);
 
+      allow delete: if false;
+
+      match /addresses/{addressId} {
+        allow get, list: if hasRole(userId, 'CUSTOMER');
+        allow create: if hasRole(userId, 'CUSTOMER')
+            && request.resource.data.id == addressId
+            && validAddress(request.resource.data, userId)
+            && hasNoCredentialFields(request.resource.data);
+        allow update: if hasRole(userId, 'CUSTOMER')
+            && request.resource.data.id == resource.data.id
+            && request.resource.data.customerId == resource.data.customerId
+            && validAddress(request.resource.data, userId)
+            && hasNoCredentialFields(request.resource.data);
+        allow delete: if hasRole(userId, 'CUSTOMER') && resource.data.isDefault == false;
+      }
+    }
+
+    match /sellerApplications/{sellerId} {
+      allow get: if hasRole(sellerId, 'SELLER');
+      allow list: if false;
+      allow create: if hasRole(sellerId, 'SELLER')
+          && request.resource.data.id == sellerId
+          && request.resource.data.sellerId == sellerId
+          && request.resource.data.status == 'PENDING'
+          && hasNoCredentialFields(request.resource.data);
+      allow update: if hasRole(sellerId, 'SELLER')
+          && resource.data.status == 'REJECTED'
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.sellerId == resource.data.sellerId
+          && request.resource.data.status == 'PENDING'
+          && hasNoCredentialFields(request.resource.data);
       allow delete: if false;
     }
 

@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.googleid)
+    implementation(libs.play.services.location)
     annotationProcessor(libs.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.arch.core.testing)

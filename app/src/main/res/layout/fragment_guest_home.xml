@@ -60,6 +60,15 @@
                     android:layout_height="@dimen/touch_target_min"
                     android:layout_marginTop="@dimen/space_lg"
                     android:text="@string/login_action" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/profileButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/touch_target_min"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="@string/profile_action"
+                    android:textColor="@color/rescue_on_primary" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

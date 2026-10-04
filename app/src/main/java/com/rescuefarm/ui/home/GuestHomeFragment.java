@@ -30,7 +30,10 @@ public class GuestHomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         TextView foundationMessage = view.findViewById(R.id.foundationMessage);
-        HomeViewModel viewModel = new ViewModelProvider(this).get(HomeViewModel.class);
+        HomeViewModel viewModel = new ViewModelProvider(
+                this,
+                new HomeViewModelFactory(requireContext())
+        ).get(HomeViewModel.class);
 
         viewModel.getHomeState().observe(getViewLifecycleOwner(), state -> {
             if (state.getMessage() != null) {
@@ -40,9 +43,19 @@ public class GuestHomeFragment extends Fragment {
             }
         });
 
-        view.findViewById(R.id.loginButton).setOnClickListener(
+        View loginButton = view.findViewById(R.id.loginButton);
+        View profileButton = view.findViewById(R.id.profileButton);
+        loginButton.setVisibility(viewModel.isAuthenticated() ? View.GONE : View.VISIBLE);
+        profileButton.setVisibility(viewModel.isAuthenticated() ? View.VISIBLE : View.GONE);
+
+        loginButton.setOnClickListener(
                 Navigation.createNavigateOnClickListener(
                         R.id.action_guestHomeFragment_to_loginFragment
+                )
+        );
+        profileButton.setOnClickListener(
+                Navigation.createNavigateOnClickListener(
+                        R.id.action_guestHomeFragment_to_profileFragment
                 )
         );
     }
