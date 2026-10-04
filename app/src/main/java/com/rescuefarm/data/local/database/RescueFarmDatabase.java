@@ -5,6 +5,9 @@ import android.content.Context;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
+import androidx.annotation.NonNull;
 
 import com.rescuefarm.data.local.dao.CampaignCacheDao;
 import com.rescuefarm.data.local.dao.CatalogCacheDao;
@@ -26,12 +29,23 @@ import com.rescuefarm.data.local.entity.ProductCacheEntity;
                 PostCacheEntity.class,
                 GuestCartItemEntity.class
         },
-        version = 1,
+        version = 2,
         exportSchema = true
 )
 public abstract class RescueFarmDatabase extends RoomDatabase {
     private static final String DATABASE_NAME = "rescue_farm.db";
     private static volatile RescueFarmDatabase instance;
+    private static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE product_cache ADD COLUMN description TEXT");
+            database.execSQL("ALTER TABLE product_cache ADD COLUMN origin TEXT");
+            database.execSQL("ALTER TABLE product_cache ADD COLUMN province TEXT");
+            database.execSQL("ALTER TABLE product_cache ADD COLUMN imageUrlsSerialized TEXT");
+            database.execSQL("ALTER TABLE product_cache ADD COLUMN averageRating REAL NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE product_cache ADD COLUMN reviewCount INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE product_batch_cache ADD COLUMN inventoryVersion INTEGER NOT NULL DEFAULT 0");
+        }
+    };
 
     public static RescueFarmDatabase getInstance(Context context) {
         if (instance == null) {
@@ -41,7 +55,7 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             RescueFarmDatabase.class,
                             DATABASE_NAME
-                    ).build();
+                    ).addMigrations(MIGRATION_1_2).build();
                 }
             }
         }

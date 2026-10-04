@@ -1,0 +1,383 @@
+package com.rescuefarm.data.remote.firebase;
+
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Transformations;
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.rescuefarm.data.local.dao.CatalogCacheDao;
+import com.rescuefarm.data.local.database.RescueFarmDatabase;
+import com.rescuefarm.data.local.entity.CategoryCacheEntity;
+import com.rescuefarm.data.local.entity.ProductBatchCacheEntity;
+import com.rescuefarm.data.local.entity.ProductCacheEntity;
+import com.rescuefarm.data.local.mapper.CatalogCacheMapper;
+import com.rescuefarm.data.repository.ProductRepository;
+import com.rescuefarm.domain.enums.BatchStatus;
+import com.rescuefarm.domain.enums.ProductStatus;
+import com.rescuefarm.domain.model.Category;
+import com.rescuefarm.domain.model.Product;
+import com.rescuefarm.domain.model.ProductBatch;
+import com.rescuefarm.service.inventory.InventoryService;
+import com.rescuefarm.service.inventory.InventoryVersionPolicy;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+
+public class FirebaseProductRepository implements ProductRepository {
+    private static final String CATEGORIES = "categories";
+    private static final String PRODUCTS = "products";
+    private static final String BATCHES = "productBatches";
+    private final FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+    private final FirebaseAuth auth = FirebaseAuth.getInstance();
+    private final RescueFarmDatabase database;
+    private final CatalogCacheDao dao;
+    private final ExecutorService cacheExecutor;
+    private final InventoryService inventoryService = new InventoryService();
+
+    public FirebaseProductRepository(RescueFarmDatabase database, ExecutorService cacheExecutor) {
+        this.database = database; this.dao = database.catalogCacheDao(); this.cacheExecutor = cacheExecutor;
+    }
+
+    @Override public LiveData<List<Category>> observeCategories() {
+        return Transformations.map(dao.observeActiveCategories(), CatalogCacheMapper::categories);
+    }
+    @Override public LiveData<List<Product>> observeProducts() {
+        return Transformations.map(dao.observeActiveProducts(), CatalogCacheMapper::products);
+    }
+    @Override public LiveData<List<Product>> observeSellerProducts(String sellerId) {
+        return Transformations.map(dao.observeSellerProducts(sellerId), CatalogCacheMapper::products);
+    }
+    @Override public LiveData<List<ProductBatch>> observeBatches(String productId) {
+        return Transformations.map(dao.observeBatches(productId), CatalogCacheMapper::batches);
+    }
+
+    @Override public void refreshCatalog(ActionCallback callback) {
+        firestore.collection(CATEGORIES).whereEqualTo("active", true).get()
+                .addOnSuccessListener(categorySnapshot -> firestore.collection(PRODUCTS)
+                        .whereEqualTo("status", ProductStatus.ACTIVE.name()).get()
+                        .addOnSuccessListener(productSnapshot -> {
+                            List<CategoryCacheEntity> categories = new ArrayList<>();
+                            List<ProductCacheEntity> products = new ArrayList<>();
+                            long now = System.currentTimeMillis();
+                            for (DocumentSnapshot document : categorySnapshot.getDocuments()) {
+                                Category value = mapCategory(document);
+                                if (value != null) categories.add(CatalogCacheMapper.toEntity(value, now));
+                            }
+                            for (DocumentSnapshot document : productSnapshot.getDocuments()) {
+                                Product value = mapProduct(document);
+                                if (value != null) products.add(CatalogCacheMapper.toEntity(value, now));
+                            }
+                            cacheExecutor.execute(() -> {
+                                database.runInTransaction(() -> {
+                                    dao.clearCategories(); dao.replaceCategories(categories);
+                                    dao.clearActiveProducts(); dao.replaceProducts(products);
+                                });
+                                callback.onSuccess();
+                            });
+                        }).addOnFailureListener(error -> notifyFailure(error, callback::onError)))
+                .addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void refreshSellerProducts(String sellerId, ActionCallback callback) {
+        firestore.collection(PRODUCTS).whereEqualTo("sellerId", sellerId).get()
+                .addOnSuccessListener(snapshot -> {
+                    List<ProductCacheEntity> products = new ArrayList<>(); long now = System.currentTimeMillis();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        Product value = mapProduct(document);
+                        if (value != null) products.add(CatalogCacheMapper.toEntity(value, now));
+                    }
+                    cacheExecutor.execute(() -> {
+                        database.runInTransaction(() -> {
+                            dao.clearSellerProducts(sellerId); dao.replaceProducts(products);
+                        });
+                        callback.onSuccess();
+                    });
+                }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void refreshBatches(String productId, ActionCallback callback) {
+        firestore.collection(BATCHES).whereEqualTo("productId", productId).get()
+                .addOnSuccessListener(snapshot -> {
+                    List<ProductBatchCacheEntity> batches = new ArrayList<>(); long now = System.currentTimeMillis();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        ProductBatch value = mapBatch(document);
+                        if (value != null) batches.add(CatalogCacheMapper.toEntity(value, now));
+                    }
+                    cacheExecutor.execute(() -> {
+                        database.runInTransaction(() -> { dao.clearBatches(productId); dao.replaceBatches(batches); });
+                        callback.onSuccess();
+                    });
+                }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void getProduct(String productId, ProductCallback callback) {
+        firestore.collection(PRODUCTS).document(productId).get().addOnSuccessListener(snapshot -> {
+            Product value = snapshot.exists() ? mapProduct(snapshot) : null;
+            if (value == null) { fallbackProduct(productId, callback); return; }
+            cacheExecutor.execute(() -> dao.replaceProduct(CatalogCacheMapper.toEntity(
+                    value, System.currentTimeMillis())));
+            callback.onSuccess(value);
+        }).addOnFailureListener(error -> cacheExecutor.execute(() -> {
+            ProductCacheEntity cached = dao.findProduct(productId);
+            if (cached != null) callback.onSuccess(CatalogCacheMapper.toDomain(cached));
+            else notifyFailure(error, callback::onError);
+        }));
+    }
+
+    @Override public void saveProduct(Product product, ProductCallback callback) {
+        String sellerId = currentUserId();
+        if (sellerId == null) { callback.onError(ErrorCode.FORBIDDEN, "Vui lòng đăng nhập seller."); return; }
+        DocumentReference reference = clean(product.getId()).isEmpty()
+                ? firestore.collection(PRODUCTS).document()
+                : firestore.collection(PRODUCTS).document(product.getId());
+        Product saved;
+        try { saved = copyProduct(reference.getId(), sellerId, product); }
+        catch (IllegalArgumentException error) {
+            callback.onError(ErrorCode.VALIDATION, error.getMessage()); return;
+        }
+        firestore.runTransaction(transaction -> {
+            DocumentSnapshot existing = transaction.get(reference);
+            if (existing.exists() && !sellerId.equals(existing.getString("sellerId"))) {
+                throw new IllegalStateException("FORBIDDEN");
+            }
+            double rating = existing.exists() ? number(existing, "averageRating") : 0D;
+            int reviewCount = existing.exists() ? (int) longValue(existing, "reviewCount") : 0;
+            Product result = Product.restore(saved.getId(), saved.getSellerId(), saved.getCategoryId(),
+                    saved.getName(), saved.getDescription(), saved.getOriginalPrice(), saved.getRescuePrice(),
+                    saved.getUnit(), saved.getOrigin(), saved.getProvince(), saved.getImageUrls(), rating,
+                    reviewCount, saved.getStatus());
+            Map<String, Object> data = productMap(result);
+            data.put("updatedAt", FieldValue.serverTimestamp());
+            if (!existing.exists()) data.put("createdAt", FieldValue.serverTimestamp());
+            else if (existing.get("createdAt") != null) data.put("createdAt", existing.get("createdAt"));
+            transaction.set(reference, data);
+            return result;
+        }).addOnSuccessListener(result -> {
+            cacheExecutor.execute(() -> dao.replaceProduct(CatalogCacheMapper.toEntity(
+                    result, System.currentTimeMillis())));
+            callback.onSuccess(result);
+        }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void hideProduct(String productId, ActionCallback callback) {
+        DocumentReference reference = firestore.collection(PRODUCTS).document(productId);
+        firestore.runTransaction(transaction -> {
+            DocumentSnapshot snapshot = transaction.get(reference);
+            requireOwner(snapshot);
+            transaction.update(reference, "status", ProductStatus.HIDDEN.name(),
+                    "updatedAt", FieldValue.serverTimestamp());
+            return null;
+        }).addOnSuccessListener(unused -> {
+            cacheExecutor.execute(() -> dao.deleteProduct(productId)); callback.onSuccess();
+        }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void saveBatch(ProductBatch batch, long expectedVersion, BatchCallback callback) {
+        DocumentReference productRef = firestore.collection(PRODUCTS).document(batch.getProductId());
+        DocumentReference batchRef = clean(batch.getId()).isEmpty()
+                ? firestore.collection(BATCHES).document()
+                : firestore.collection(BATCHES).document(batch.getId());
+        firestore.runTransaction(transaction -> {
+            DocumentSnapshot productSnapshot = transaction.get(productRef);
+            DocumentSnapshot existing = transaction.get(batchRef);
+            requireOwner(productSnapshot);
+            ProductBatch saved;
+            if (existing.exists()) {
+                long version = longValue(existing, "inventoryVersion");
+                InventoryVersionPolicy.requireExpected(version, expectedVersion);
+                ProductBatch current = requireBatch(existing);
+                current.updateDetails(batch.getHarvestDate(), batch.getExpiryDate(),
+                        batch.getInitialQuantity(), new Date());
+                saved = copyBatch(current, version + 1L);
+            } else {
+                InventoryVersionPolicy.requireExpected(0L, expectedVersion);
+                ProductBatch candidate = ProductBatch.restore(batchRef.getId(), batch.getProductId(), null,
+                        batch.getHarvestDate(), batch.getExpiryDate(), batch.getInitialQuantity(),
+                        batch.getAvailableQuantity(), 0D, 0D, batch.getStatus(), 1L);
+                candidate.updateDetails(candidate.getHarvestDate(), candidate.getExpiryDate(),
+                        candidate.getInitialQuantity(), new Date());
+                saved = copyBatch(candidate, 1L);
+            }
+            Map<String, Object> data = batchMap(saved);
+            data.put("updatedAt", FieldValue.serverTimestamp());
+            if (!existing.exists()) data.put("createdAt", FieldValue.serverTimestamp());
+            transaction.set(batchRef, data); return saved;
+        }).addOnSuccessListener(saved -> {
+            cacheExecutor.execute(() -> dao.replaceBatch(CatalogCacheMapper.toEntity(
+                    saved, System.currentTimeMillis()))); callback.onSuccess(saved);
+        }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void deleteBatch(String batchId, long expectedVersion, ActionCallback callback) {
+        DocumentReference batchRef = firestore.collection(BATCHES).document(batchId);
+        firestore.runTransaction(transaction -> {
+            DocumentSnapshot batchSnapshot = transaction.get(batchRef);
+            if (!batchSnapshot.exists()) throw new IllegalStateException("NOT_FOUND");
+            DocumentSnapshot productSnapshot = transaction.get(firestore.collection(PRODUCTS)
+                    .document(batchSnapshot.getString("productId")));
+            requireOwner(productSnapshot);
+            InventoryVersionPolicy.requireExpected(
+                    longValue(batchSnapshot, "inventoryVersion"), expectedVersion);
+            if (number(batchSnapshot, "reservedQuantity") > 0 || number(batchSnapshot, "soldQuantity") > 0
+                    || !clean(batchSnapshot.getString("activeCampaignId")).isEmpty()) {
+                throw new IllegalStateException("BATCH_IN_USE");
+            }
+            transaction.delete(batchRef); return null;
+        }).addOnSuccessListener(unused -> {
+            cacheExecutor.execute(() -> dao.deleteBatch(batchId)); callback.onSuccess();
+        }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void mutateStock(String batchId, long expectedVersion, StockMutation mutation,
+            double quantity, BatchCallback callback) {
+        DocumentReference batchRef = firestore.collection(BATCHES).document(batchId);
+        firestore.runTransaction(transaction -> {
+            DocumentSnapshot batchSnapshot = transaction.get(batchRef);
+            if (!batchSnapshot.exists()) throw new IllegalStateException("NOT_FOUND");
+            DocumentSnapshot productSnapshot = transaction.get(firestore.collection(PRODUCTS)
+                    .document(batchSnapshot.getString("productId")));
+            requireOwner(productSnapshot);
+            long version = longValue(batchSnapshot, "inventoryVersion");
+            InventoryVersionPolicy.requireExpected(version, expectedVersion);
+            ProductBatch current = requireBatch(batchSnapshot);
+            if (mutation == StockMutation.RESERVE) inventoryService.reserveStock(current, quantity, new Date());
+            else if (mutation == StockMutation.COMMIT) inventoryService.commitReservedStock(current, quantity);
+            else inventoryService.releaseReservedStock(current, quantity);
+            ProductBatch saved = copyBatch(current, version + 1L);
+            Map<String, Object> values = batchMap(saved); values.put("updatedAt", FieldValue.serverTimestamp());
+            transaction.set(batchRef, values); return saved;
+        }).addOnSuccessListener(saved -> {
+            cacheExecutor.execute(() -> dao.replaceBatch(CatalogCacheMapper.toEntity(
+                    saved, System.currentTimeMillis()))); callback.onSuccess(saved);
+        }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    private void fallbackProduct(String productId, ProductCallback callback) {
+        cacheExecutor.execute(() -> {
+            ProductCacheEntity cached = dao.findProduct(productId);
+            if (cached == null) callback.onError(ErrorCode.NOT_FOUND, "Không tìm thấy sản phẩm.");
+            else callback.onSuccess(CatalogCacheMapper.toDomain(cached));
+        });
+    }
+
+    private Category mapCategory(DocumentSnapshot value) {
+        try { return new Category(value.getId(), value.getString("name"), value.getString("imageUrl"),
+                Boolean.TRUE.equals(value.getBoolean("active")), (int) longValue(value, "displayOrder")); }
+        catch (IllegalArgumentException error) { return null; }
+    }
+
+    private Product mapProduct(DocumentSnapshot value) {
+        try {
+            List<String> urls = new ArrayList<>(); Object rawUrls = value.get("imageUrls");
+            if (rawUrls instanceof List<?>) for (Object item : (List<?>) rawUrls) if (item instanceof String) urls.add((String) item);
+            return Product.restore(value.getId(), value.getString("sellerId"), value.getString("categoryId"),
+                    value.getString("name"), value.getString("description"), number(value, "originalPrice"),
+                    number(value, "rescuePrice"), value.getString("unit"), value.getString("origin"),
+                    value.getString("province"), urls, number(value, "averageRating"),
+                    (int) longValue(value, "reviewCount"), enumValue(ProductStatus.class,
+                    value.getString("status"), ProductStatus.INACTIVE));
+        } catch (IllegalArgumentException error) { return null; }
+    }
+
+    private ProductBatch mapBatch(DocumentSnapshot value) {
+        try { return requireBatch(value); }
+        catch (IllegalArgumentException | IllegalStateException error) { return null; }
+    }
+
+    private ProductBatch requireBatch(DocumentSnapshot value) {
+        Date expiry = date(value, "expiryDate");
+        BatchStatus status = enumValue(BatchStatus.class, value.getString("status"), BatchStatus.AVAILABLE);
+        if (expiry != null && !expiry.after(new Date())) status = BatchStatus.EXPIRED;
+        return ProductBatch.restore(value.getId(), value.getString("productId"),
+                value.getString("activeCampaignId"), date(value, "harvestDate"), expiry,
+                number(value, "initialQuantity"), number(value, "availableQuantity"),
+                number(value, "reservedQuantity"), number(value, "soldQuantity"), status,
+                longValue(value, "inventoryVersion"));
+    }
+
+    private Product copyProduct(String id, String sellerId, Product source) {
+        return new Product(id, sellerId, source.getCategoryId(), source.getName(), source.getDescription(),
+                source.getOriginalPrice(), source.getRescuePrice(), source.getUnit(), source.getOrigin(),
+                source.getProvince(), source.getImageUrls(), source.getStatus());
+    }
+    private ProductBatch copyBatch(ProductBatch source, long version) {
+        return ProductBatch.restore(source.getId(), source.getProductId(), source.getActiveCampaignId(),
+                source.getHarvestDate(), source.getExpiryDate(), source.getInitialQuantity(),
+                source.getAvailableQuantity(), source.getReservedQuantity(), source.getSoldQuantity(),
+                source.getStatus(), version);
+    }
+
+    private Map<String, Object> productMap(Product value) {
+        Map<String, Object> data = new HashMap<>(); data.put("id", value.getId());
+        data.put("sellerId", value.getSellerId()); data.put("categoryId", value.getCategoryId());
+        data.put("name", value.getName()); data.put("description", value.getDescription());
+        data.put("originalPrice", value.getOriginalPrice()); data.put("rescuePrice", value.getRescuePrice());
+        data.put("unit", value.getUnit()); data.put("origin", value.getOrigin()); data.put("province", value.getProvince());
+        data.put("imageUrls", value.getImageUrls()); data.put("averageRating", value.getAverageRating());
+        data.put("reviewCount", value.getReviewCount()); data.put("status", value.getStatus().name()); return data;
+    }
+    private Map<String, Object> batchMap(ProductBatch value) {
+        Map<String, Object> data = new HashMap<>(); data.put("id", value.getId());
+        data.put("productId", value.getProductId()); data.put("activeCampaignId", value.getActiveCampaignId());
+        data.put("harvestDate", value.getHarvestDate()); data.put("expiryDate", value.getExpiryDate());
+        data.put("initialQuantity", value.getInitialQuantity()); data.put("availableQuantity", value.getAvailableQuantity());
+        data.put("reservedQuantity", value.getReservedQuantity()); data.put("soldQuantity", value.getSoldQuantity());
+        data.put("status", value.getStatus().name()); data.put("inventoryVersion", value.getInventoryVersion()); return data;
+    }
+
+    private void requireOwner(DocumentSnapshot snapshot) {
+        String userId = currentUserId();
+        if (!snapshot.exists()) throw new IllegalStateException("NOT_FOUND");
+        if (userId == null || !userId.equals(snapshot.getString("sellerId"))) {
+            throw new IllegalStateException("FORBIDDEN");
+        }
+    }
+    private String currentUserId() { return auth.getCurrentUser() == null ? null : auth.getCurrentUser().getUid(); }
+
+    private void notifyFailure(Exception error, ErrorConsumer consumer) {
+        String code = error.getMessage();
+        if ("STALE_VERSION".equals(code)) { consumer.accept(ErrorCode.CONFLICT, "Tồn kho đã thay đổi. Hãy tải lại."); return; }
+        if ("BATCH_IN_USE".equals(code)) { consumer.accept(ErrorCode.CONFLICT, "Batch đã phát sinh giữ chỗ/bán hoặc campaign."); return; }
+        if ("NOT_FOUND".equals(code)) { consumer.accept(ErrorCode.NOT_FOUND, "Không tìm thấy dữ liệu."); return; }
+        if ("FORBIDDEN".equals(code)) { consumer.accept(ErrorCode.FORBIDDEN, "Seller chưa được duyệt hoặc không sở hữu dữ liệu."); return; }
+        if (error instanceof IllegalArgumentException || error instanceof IllegalStateException) {
+            consumer.accept(ErrorCode.VALIDATION, error.getMessage()); return;
+        }
+        if (error instanceof FirebaseFirestoreException) {
+            FirebaseFirestoreException.Code firestoreCode = ((FirebaseFirestoreException) error).getCode();
+            if (firestoreCode == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                consumer.accept(ErrorCode.FORBIDDEN, "Seller chưa được duyệt hoặc không có quyền."); return;
+            }
+            if (firestoreCode == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                consumer.accept(ErrorCode.NETWORK, "Không thể kết nối Firestore; dữ liệu cache vẫn được giữ."); return;
+            }
+            if (firestoreCode == FirebaseFirestoreException.Code.ABORTED) {
+                consumer.accept(ErrorCode.CONFLICT, "Dữ liệu vừa thay đổi. Hãy tải lại."); return;
+            }
+        }
+        consumer.accept(ErrorCode.UNKNOWN, "Không thể xử lý dữ liệu sản phẩm.");
+    }
+    private static double number(DocumentSnapshot value, String field) {
+        Double result = value.getDouble(field); return result == null ? 0D : result;
+    }
+    private static long longValue(DocumentSnapshot value, String field) {
+        Long result = value.getLong(field); return result == null ? 0L : result;
+    }
+    private static Date date(DocumentSnapshot value, String field) {
+        Timestamp result = value.getTimestamp(field); return result == null ? null : result.toDate();
+    }
+    private static String clean(String value) { return value == null ? "" : value.trim(); }
+    private static <T extends Enum<T>> T enumValue(Class<T> type, String value, T fallback) {
+        try { return Enum.valueOf(type, value == null ? "" : value); }
+        catch (IllegalArgumentException error) { return fallback; }
+    }
+    private interface ErrorConsumer { void accept(ErrorCode error, String message); }
+    @Override public void close() { cacheExecutor.shutdownNow(); }
+}

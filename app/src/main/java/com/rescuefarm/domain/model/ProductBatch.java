@@ -17,6 +17,7 @@ public class ProductBatch {
     private double reservedQuantity;
     private double soldQuantity;
     private BatchStatus status;
+    private long inventoryVersion;
 
     public ProductBatch() { }
 
@@ -27,9 +28,56 @@ public class ProductBatch {
         this.initialQuantity = initialQuantity;
         this.availableQuantity = initialQuantity;
         this.status = BatchStatus.AVAILABLE;
+        this.inventoryVersion = 0L;
     }
 
-    public boolean isExpired(Date now) { return expiryDate != null && expiryDate.before(now); }
+    public static ProductBatch restore(String id, String productId, String activeCampaignId,
+            Date harvestDate, Date expiryDate, double initialQuantity, double availableQuantity,
+            double reservedQuantity, double soldQuantity, BatchStatus status, long inventoryVersion) {
+        ProductBatch batch = new ProductBatch(id, productId, initialQuantity);
+        batch.activeCampaignId = activeCampaignId;
+        batch.harvestDate = copy(harvestDate);
+        batch.expiryDate = copy(expiryDate);
+        batch.availableQuantity = availableQuantity;
+        batch.reservedQuantity = reservedQuantity;
+        batch.soldQuantity = soldQuantity;
+        batch.status = status == null ? BatchStatus.AVAILABLE : status;
+        batch.inventoryVersion = Math.max(0L, inventoryVersion);
+        batch.verifyDates();
+        batch.verifyInventoryInvariant();
+        return batch;
+    }
+
+    public void updateDetails(Date harvestDate, Date expiryDate, double newInitialQuantity, Date now) {
+        requirePositive(newInitialQuantity, "Initial quantity");
+        if (harvestDate == null || expiryDate == null || now == null) {
+            throw new IllegalArgumentException("Harvest, expiry and current dates are required");
+        }
+        if (harvestDate.after(expiryDate)) {
+            throw new IllegalArgumentException("Harvest date must not be after expiry date");
+        }
+        boolean hasMovements = reservedQuantity > QUANTITY_TOLERANCE || soldQuantity > QUANTITY_TOLERANCE;
+        if (hasMovements && Math.abs(initialQuantity - newInitialQuantity) > QUANTITY_TOLERANCE) {
+            throw new IllegalStateException("Initial quantity cannot change after stock movements");
+        }
+        if (!hasMovements) {
+            initialQuantity = newInitialQuantity;
+            availableQuantity = newInitialQuantity;
+        }
+        this.harvestDate = copy(harvestDate);
+        this.expiryDate = copy(expiryDate);
+        if (isExpired(now)) status = BatchStatus.EXPIRED;
+        else refreshStatus();
+        verifyInventoryInvariant();
+    }
+
+    public boolean isExpired(Date now) {
+        return expiryDate != null && now != null && !expiryDate.after(now);
+    }
+    public boolean isSellable(Date now) {
+        return now != null && !isExpired(now) && availableQuantity > QUANTITY_TOLERANCE
+                && (status == BatchStatus.AVAILABLE || status == BatchStatus.RESERVED_PARTIAL);
+    }
     public boolean hasAvailableStock(double requestedQuantity) {
         return requestedQuantity > 0.0 && availableQuantity + QUANTITY_TOLERANCE >= requestedQuantity;
     }
@@ -41,6 +89,11 @@ public class ProductBatch {
         reservedQuantity += requestedQuantity;
         refreshStatus();
         verifyInventoryInvariant();
+    }
+
+    public void reserveStock(double requestedQuantity, Date now) {
+        if (!isSellable(now)) { throw new IllegalStateException("Expired or unavailable batch cannot be sold"); }
+        reserveStock(requestedQuantity);
     }
 
     public void commitReservedStock(double quantity) {
@@ -69,6 +122,7 @@ public class ProductBatch {
     }
 
     private void refreshStatus() {
+        if (status == BatchStatus.EXPIRED) { return; }
         if (availableQuantity <= QUANTITY_TOLERANCE && reservedQuantity <= QUANTITY_TOLERANCE) {
             status = BatchStatus.SOLD_OUT;
         } else if (reservedQuantity > QUANTITY_TOLERANCE) {
@@ -77,6 +131,14 @@ public class ProductBatch {
             status = BatchStatus.AVAILABLE;
         }
     }
+
+    private void verifyDates() {
+        if (harvestDate != null && expiryDate != null && harvestDate.after(expiryDate)) {
+            throw new IllegalStateException("Harvest date must not be after expiry date");
+        }
+    }
+
+    private static Date copy(Date value) { return value == null ? null : new Date(value.getTime()); }
 
     private static void requirePositive(double quantity, String fieldName) {
         if (!Double.isFinite(quantity) || quantity <= 0.0) { throw new IllegalArgumentException(fieldName + " must be positive"); }
@@ -92,4 +154,5 @@ public class ProductBatch {
     public double getReservedQuantity() { return reservedQuantity; }
     public double getSoldQuantity() { return soldQuantity; }
     public BatchStatus getStatus() { return status; }
+    public long getInventoryVersion() { return inventoryVersion; }
 }

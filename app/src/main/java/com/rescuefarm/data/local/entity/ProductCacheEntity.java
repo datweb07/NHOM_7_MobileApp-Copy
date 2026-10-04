@@ -12,9 +12,15 @@ public class ProductCacheEntity {
     public String sellerId;
     public String categoryId;
     public String name;
+    public String description;
     public double originalPrice;
     public double rescuePrice;
     public String unit;
+    public String origin;
+    public String province;
+    public String imageUrlsSerialized;
+    public double averageRating;
+    public int reviewCount;
     public String status;
     public long cachedAtEpochMillis;
 

@@ -15,6 +15,67 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/users/$(userId)).data.role == role;
     }
 
+    function isApprovedSeller(userId) {
+      return hasRole(userId, 'SELLER')
+          && get(/databases/$(database)/documents/users/$(userId)).data.sellerStatus == 'APPROVED';
+    }
+
+    function ownsProduct(productId) {
+      return isSignedIn()
+          && get(/databases/$(database)/documents/products/$(productId)).data.sellerId == request.auth.uid;
+    }
+
+    function validProduct(data) {
+      return data.name is string
+          && data.name.size() >= 2
+          && data.categoryId is string
+          && data.categoryId.size() > 0
+          && data.originalPrice is number
+          && data.rescuePrice is number
+          && data.originalPrice > 0
+          && data.rescuePrice > 0
+          && data.rescuePrice <= data.originalPrice
+          && data.unit is string
+          && data.unit.size() > 0
+          && get(/databases/$(database)/documents/categories/$(data.categoryId)).data.active == true
+          && data.status in ['ACTIVE', 'INACTIVE', 'SOLD_OUT', 'HIDDEN'];
+    }
+
+    function validBatch(data) {
+      return data.initialQuantity is number
+          && data.availableQuantity is number
+          && data.reservedQuantity is number
+          && data.soldQuantity is number
+          && data.initialQuantity > 0
+          && data.availableQuantity >= 0
+          && data.reservedQuantity >= 0
+          && data.soldQuantity >= 0
+          && data.initialQuantity
+              - (data.availableQuantity + data.reservedQuantity + data.soldQuantity) <= 0.000001
+          && data.initialQuantity
+              - (data.availableQuantity + data.reservedQuantity + data.soldQuantity) >= -0.000001
+          && data.harvestDate is timestamp
+          && data.expiryDate is timestamp
+          && data.harvestDate < data.expiryDate
+          && data.status in ['AVAILABLE', 'RESERVED_PARTIAL', 'SOLD_OUT', 'EXPIRED'];
+    }
+
+    function validInventoryTransition(before, after) {
+      return (before.reservedQuantity == 0
+              && before.soldQuantity == 0
+              && after.reservedQuantity == 0
+              && after.soldQuantity == 0
+              && after.availableQuantity == after.initialQuantity)
+          || (after.soldQuantity == before.soldQuantity
+              && before.availableQuantity - after.availableQuantity
+                  == after.reservedQuantity - before.reservedQuantity
+              && (after.availableQuantity >= before.availableQuantity
+                  || before.expiryDate > request.time))
+          || (after.availableQuantity == before.availableQuantity
+              && before.reservedQuantity - after.reservedQuantity
+                  == after.soldQuantity - before.soldQuantity);
+    }
+
     function hasNoCredentialFields(data) {
       return !data.keys().hasAny(['password', 'passwordHash', 'rawPassword']);
     }
@@ -98,6 +159,55 @@ service cloud.firestore {
           && request.resource.data.status == 'PENDING'
           && hasNoCredentialFields(request.resource.data);
       allow delete: if false;
+    }
+
+    match /categories/{categoryId} {
+      allow get, list: if resource.data.active == true;
+      allow write: if false;
+    }
+
+    match /products/{productId} {
+      allow get, list: if resource.data.status == 'ACTIVE'
+          || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+      allow create: if isApprovedSeller(request.auth.uid)
+          && request.resource.data.id == productId
+          && request.resource.data.sellerId == request.auth.uid
+          && request.resource.data.averageRating == 0
+          && request.resource.data.reviewCount == 0
+          && validProduct(request.resource.data)
+          && hasNoCredentialFields(request.resource.data);
+      allow update: if isApprovedSeller(request.auth.uid)
+          && resource.data.sellerId == request.auth.uid
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.sellerId == resource.data.sellerId
+          && request.resource.data.averageRating == resource.data.averageRating
+          && request.resource.data.reviewCount == resource.data.reviewCount
+          && validProduct(request.resource.data)
+          && hasNoCredentialFields(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /productBatches/{batchId} {
+      allow get, list: if true;
+      allow create: if isApprovedSeller(request.auth.uid)
+          && ownsProduct(request.resource.data.productId)
+          && request.resource.data.id == batchId
+          && request.resource.data.inventoryVersion == 1
+          && validBatch(request.resource.data)
+          && hasNoCredentialFields(request.resource.data);
+      allow update: if isApprovedSeller(request.auth.uid)
+          && ownsProduct(resource.data.productId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.productId == resource.data.productId
+          && request.resource.data.inventoryVersion == resource.data.inventoryVersion + 1
+          && validBatch(request.resource.data)
+          && validInventoryTransition(resource.data, request.resource.data)
+          && hasNoCredentialFields(request.resource.data);
+      allow delete: if isApprovedSeller(request.auth.uid)
+          && ownsProduct(resource.data.productId)
+          && resource.data.reservedQuantity == 0
+          && resource.data.soldQuantity == 0
+          && (resource.data.activeCampaignId == null || resource.data.activeCampaignId == '');
     }
 
     match /{document=**} {

@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.googleid)
     implementation(libs.play.services.location)
+    implementation(libs.glide)
     annotationProcessor(libs.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.arch.core.testing)

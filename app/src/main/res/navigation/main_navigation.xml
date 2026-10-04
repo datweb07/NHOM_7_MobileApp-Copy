@@ -51,6 +51,8 @@
         <action
             android:id="@+id/action_guestHomeFragment_to_profileFragment"
             app:destination="@id/profileFragment" />
+        <action android:id="@+id/action_guestHomeFragment_to_productListFragment"
+            app:destination="@id/productListFragment" />
     </fragment>
 
     <fragment
@@ -108,8 +110,28 @@
         android:name="com.rescuefarm.ui.profile.SellerProfileFragment" android:label="@string/seller_profile_title">
         <action android:id="@+id/action_sellerProfileFragment_to_sellerApplicationFragment"
             app:destination="@id/sellerApplicationFragment" />
+        <action android:id="@+id/action_sellerProfileFragment_to_sellerProductListFragment"
+            app:destination="@id/sellerProductListFragment" />
     </fragment>
     <fragment android:id="@+id/sellerApplicationFragment"
         android:name="com.rescuefarm.ui.profile.SellerApplicationFragment"
         android:label="@string/seller_application_title" />
+    <fragment android:id="@+id/productListFragment"
+        android:name="com.rescuefarm.ui.product.ProductListFragment" android:label="@string/catalog_title">
+        <action android:id="@+id/action_productListFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
+    </fragment>
+    <fragment android:id="@+id/productDetailFragment"
+        android:name="com.rescuefarm.ui.product.ProductDetailFragment" android:label="@string/product_editor_title" />
+    <fragment android:id="@+id/sellerProductListFragment"
+        android:name="com.rescuefarm.ui.product.SellerProductListFragment" android:label="@string/seller_products_title">
+        <action android:id="@+id/action_sellerProductListFragment_to_productEditorFragment"
+            app:destination="@id/productEditorFragment" />
+        <action android:id="@+id/action_sellerProductListFragment_to_batchManagerFragment"
+            app:destination="@id/batchManagerFragment" />
+    </fragment>
+    <fragment android:id="@+id/productEditorFragment"
+        android:name="com.rescuefarm.ui.product.ProductEditorFragment" android:label="@string/product_editor_title" />
+    <fragment android:id="@+id/batchManagerFragment"
+        android:name="com.rescuefarm.ui.product.BatchManagerFragment" android:label="@string/batch_manager_title" />
 </navigation>

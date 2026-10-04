@@ -2,12 +2,31 @@ package com.rescuefarm.service.inventory;
 
 import com.rescuefarm.domain.model.ProductBatch;
 import com.rescuefarm.domain.model.RescueCampaign;
+import java.util.Date;
 
 public class InventoryService {
 
     public void validateAvailableStock(ProductBatch batch, double requestedQuantity) {
+        validateAvailableStock(batch, requestedQuantity, new Date());
+    }
+
+    public void validateAvailableStock(ProductBatch batch, double requestedQuantity, Date now) {
         if (batch == null) { throw new IllegalArgumentException("Product batch is required"); }
+        if (!batch.isSellable(now)) { throw new IllegalStateException("Expired or unavailable batch cannot be sold"); }
         if (!batch.hasAvailableStock(requestedQuantity)) { throw new IllegalStateException("Insufficient available stock"); }
+    }
+
+    public void reserveStock(ProductBatch batch, double quantity, Date now) {
+        validateAvailableStock(batch, quantity, now);
+        batch.reserveStock(quantity, now);
+    }
+
+    public void commitReservedStock(ProductBatch batch, double quantity) {
+        batch.commitReservedStock(quantity);
+    }
+
+    public void releaseReservedStock(ProductBatch batch, double quantity) {
+        batch.releaseReservedStock(quantity);
     }
 
     public void reserveStock(ProductBatch batch, RescueCampaign campaign, double quantity) {

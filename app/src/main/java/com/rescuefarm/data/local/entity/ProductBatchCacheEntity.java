@@ -18,6 +18,7 @@ public class ProductBatchCacheEntity {
     public double reservedQuantity;
     public double soldQuantity;
     public String status;
+    public long inventoryVersion;
     public long cachedAtEpochMillis;
 
     public ProductBatchCacheEntity(@NonNull String id) { this.id = id; }

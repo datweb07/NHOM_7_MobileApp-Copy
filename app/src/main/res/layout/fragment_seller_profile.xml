@@ -51,5 +51,9 @@
             style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
             android:layout_height="@dimen/touch_target_min" android:layout_marginTop="@dimen/space_sm"
             android:text="@string/seller_application_action" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/openSellerProductsButton"
+            style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:layout_marginTop="@dimen/space_sm"
+            android:text="@string/seller_products_action" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

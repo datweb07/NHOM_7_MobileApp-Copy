@@ -58,5 +58,10 @@ public class GuestHomeFragment extends Fragment {
                         R.id.action_guestHomeFragment_to_profileFragment
                 )
         );
+        view.findViewById(R.id.catalogButton).setOnClickListener(
+                Navigation.createNavigateOnClickListener(
+                        R.id.action_guestHomeFragment_to_productListFragment
+                )
+        );
     }
 }

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/rescue_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_lg">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/product_editor_title" android:textAppearance="@style/TextAppearance.RescueFarm.Display" />
+        <TextView android:id="@+id/availableCategoriesText" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:textColor="@color/rescue_on_surface_variant" />
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_md"
+            android:hint="@string/category_id_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/productCategoryInput" android:layout_width="match_parent" android:layout_height="wrap_content" /></com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/product_name_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/productNameInput" android:layout_width="match_parent" android:layout_height="wrap_content" /></com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/product_description_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/productDescriptionInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:minLines="2" /></com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/original_price_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/originalPriceInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" /></com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/rescue_price_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/rescuePriceInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" /></com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/product_unit_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/productUnitInput" android:layout_width="match_parent" android:layout_height="wrap_content" /></com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/product_origin_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/productOriginInput" android:layout_width="match_parent" android:layout_height="wrap_content" /></com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/product_province_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/productProvinceInput" android:layout_width="match_parent" android:layout_height="wrap_content" /></com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:hint="@string/product_images_label"><com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/productImagesInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:minLines="2" /></com.google.android.material.textfield.TextInputLayout>
+        <RadioGroup android:id="@+id/productStatusGroup" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="@dimen/space_sm">
+            <com.google.android.material.radiobutton.MaterialRadioButton android:id="@+id/productStatusActive"
+                android:layout_width="0dp" android:layout_height="@dimen/touch_target_min" android:layout_weight="1"
+                android:checked="true" android:text="@string/product_active" />
+            <com.google.android.material.radiobutton.MaterialRadioButton android:id="@+id/productStatusInactive"
+                android:layout_width="0dp" android:layout_height="@dimen/touch_target_min" android:layout_weight="1"
+                android:text="@string/product_inactive" />
+        </RadioGroup>
+        <com.google.android.material.button.MaterialButton android:id="@+id/saveProductButton"
+            android:layout_width="match_parent" android:layout_height="@dimen/touch_target_min"
+            android:layout_marginTop="@dimen/space_md" android:text="@string/save_product_action" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

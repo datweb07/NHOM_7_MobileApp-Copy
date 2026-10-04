@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/rescue_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_lg">
+        <ImageView android:id="@+id/productDetailImage" android:layout_width="match_parent"
+            android:layout_height="240dp" android:contentDescription="@string/product_image_description"
+            android:scaleType="centerCrop" android:background="@color/rescue_outline" />
+        <TextView android:id="@+id/productDetailName" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_lg"
+            android:textAppearance="@style/TextAppearance.RescueFarm.Display" />
+        <TextView android:id="@+id/productDetailPrice" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm" android:textSize="20sp"
+            android:textColor="@color/rescue_primary" android:textStyle="bold" />
+        <TextView android:id="@+id/productDiscount" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_xs" />
+        <TextView android:id="@+id/productDetailOrigin" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm" />
+        <TextView android:id="@+id/productStock" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm" android:textStyle="bold" />
+        <TextView android:id="@+id/productDetailDescription" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_lg"
+            android:textColor="@color/rescue_on_surface_variant" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
