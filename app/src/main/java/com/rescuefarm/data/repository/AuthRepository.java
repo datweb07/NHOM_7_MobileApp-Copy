@@ -1,6 +1,44 @@
 package com.rescuefarm.data.repository;
 
+import com.rescuefarm.domain.enums.UserRole;
+import com.rescuefarm.domain.model.User;
+
 public interface AuthRepository {
+    enum ErrorCode {
+        NOT_CONFIGURED,
+        INVALID_CREDENTIALS,
+        EMAIL_ALREADY_IN_USE,
+        ACCOUNT_DISABLED,
+        NETWORK,
+        WEAK_PASSWORD,
+        PROFILE_UNAVAILABLE,
+        UNKNOWN
+    }
+
+    interface AuthCallback {
+        void onSuccess(User user);
+        void onError(ErrorCode errorCode, String message);
+    }
+
+    interface ActionCallback {
+        void onSuccess();
+        void onError(ErrorCode errorCode, String message);
+    }
+
+    boolean isAvailable();
     boolean isAuthenticated();
     String getCurrentUserId();
+    void restoreSession(AuthCallback callback);
+    void signIn(String email, String password, AuthCallback callback);
+    void register(
+            String email,
+            String password,
+            String fullName,
+            String phone,
+            UserRole role,
+            AuthCallback callback
+    );
+    void signInWithGoogleIdToken(String idToken, AuthCallback callback);
+    void sendPasswordResetEmail(String email, ActionCallback callback);
+    void signOut();
 }

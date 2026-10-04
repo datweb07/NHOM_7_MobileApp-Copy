@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/rescue_background"
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+    android:padding="@dimen/space_lg">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/home_eyebrow"
+        android:textColor="@color/rescue_primary"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        android:text="@string/onboarding_title"
+        android:textAppearance="@style/TextAppearance.RescueFarm.Display"
+        android:textColor="@color/rescue_on_surface" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_md"
+        android:text="@string/onboarding_body"
+        android:textAppearance="@style/TextAppearance.RescueFarm.Body"
+        android:textColor="@color/rescue_on_surface_variant" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/getStartedButton"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/touch_target_min"
+        android:layout_marginTop="@dimen/space_xl"
+        android:text="@string/get_started_action" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/continueAsGuestButton"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/touch_target_min"
+        android:text="@string/continue_guest_action" />
+</LinearLayout>

@@ -13,4 +13,26 @@
     <string name="back_to_home_action">Về trang chủ</string>
     <string name="status_critical">CRITICAL</string>
     <string name="status_mobile">MOBILE POINT</string>
+    <string name="splash_tagline">Giải cứu nông sản, lan tỏa giá trị</string>
+    <string name="onboarding_title">Mỗi nông sản được cứu\nlà một giá trị được giữ lại</string>
+    <string name="onboarding_body">Khám phá lô nông sản cần tiêu thụ gấp, điểm giải cứu gần bạn và những chiến dịch minh bạch.</string>
+    <string name="get_started_action">Bắt đầu</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Mật khẩu</string>
+    <string name="full_name_label">Họ và tên</string>
+    <string name="phone_label">Số điện thoại</string>
+    <string name="forgot_password_action">Quên mật khẩu?</string>
+    <string name="google_sign_in_action">Tiếp tục với Google</string>
+    <string name="create_account_action">Tạo tài khoản</string>
+    <string name="register_prompt">Chưa có tài khoản?</string>
+    <string name="login_prompt">Đã có tài khoản?</string>
+    <string name="register_title">Tham gia RescueFarm</string>
+    <string name="register_body">Chọn đúng vai trò. Seller vẫn cần Admin phê duyệt trước khi kinh doanh.</string>
+    <string name="customer_role">Khách hàng</string>
+    <string name="seller_role">Người bán</string>
+    <string name="forgot_password_title">Khôi phục mật khẩu</string>
+    <string name="forgot_password_body">Nhập email đã đăng ký. Firebase sẽ gửi liên kết đặt lại mật khẩu cho bạn.</string>
+    <string name="send_reset_email_action">Gửi email đặt lại</string>
+    <string name="firebase_setup_notice">Firebase chưa được cấu hình. Guest Mode vẫn sử dụng được.</string>
+    <string name="loading_content_description">Đang xử lý</string>
 </resources>

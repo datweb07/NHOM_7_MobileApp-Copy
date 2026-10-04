@@ -4,6 +4,8 @@ Phase 1 deliberately builds without external credentials.
 
 ## Firebase
 
+Detailed Phase 2 instructions are in `docs/FIREBASE_SETUP.md`.
+
 Before Phase 2, the team must:
 
 1. Create or select the RescueFarm Firebase project.

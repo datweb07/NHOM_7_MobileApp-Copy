@@ -2,6 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.rescuefarm"
     compileSdk {
@@ -48,8 +52,15 @@ dependencies {
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
     implementation(libs.room.runtime)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.googleid)
     annotationProcessor(libs.room.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.arch.core.testing)
     testImplementation(libs.room.testing)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)

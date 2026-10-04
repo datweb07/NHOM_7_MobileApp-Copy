@@ -42,7 +42,7 @@ public class GuestHomeFragment extends Fragment {
 
         view.findViewById(R.id.loginButton).setOnClickListener(
                 Navigation.createNavigateOnClickListener(
-                        R.id.action_guestHomeFragment_to_loginEntryFragment
+                        R.id.action_guestHomeFragment_to_loginFragment
                 )
         );
     }

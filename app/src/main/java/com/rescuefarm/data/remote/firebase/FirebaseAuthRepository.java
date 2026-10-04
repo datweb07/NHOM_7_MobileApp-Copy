@@ -1,0 +1,226 @@
+package com.rescuefarm.data.remote.firebase;
+
+import com.google.firebase.FirebaseNetworkException;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.rescuefarm.data.repository.AuthRepository;
+import com.rescuefarm.data.repository.UserRepository;
+import com.rescuefarm.domain.enums.UserRole;
+import com.rescuefarm.domain.model.User;
+
+public class FirebaseAuthRepository implements AuthRepository {
+    private final FirebaseAuth firebaseAuth;
+    private final UserRepository userRepository;
+
+    public FirebaseAuthRepository() {
+        firebaseAuth = FirebaseAuth.getInstance();
+        userRepository = new FirebaseUserRepository();
+    }
+
+    @Override
+    public boolean isAvailable() { return true; }
+
+    @Override
+    public boolean isAuthenticated() { return firebaseAuth.getCurrentUser() != null; }
+
+    @Override
+    public String getCurrentUserId() {
+        FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+        return currentUser == null ? null : currentUser.getUid();
+    }
+
+    @Override
+    public void restoreSession(AuthCallback callback) {
+        FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+        if (currentUser == null) {
+            callback.onError(ErrorCode.INVALID_CREDENTIALS, "Không tìm thấy phiên đăng nhập.");
+            return;
+        }
+        loadRequiredProfile(currentUser, callback);
+    }
+
+    @Override
+    public void signIn(String email, String password, AuthCallback callback) {
+        firebaseAuth.signInWithEmailAndPassword(email, password)
+                .addOnSuccessListener(result -> loadRequiredProfile(result.getUser(), callback))
+                .addOnFailureListener(exception -> notifyFailure(exception, callback));
+    }
+
+    @Override
+    public void register(
+            String email,
+            String password,
+            String fullName,
+            String phone,
+            UserRole role,
+            AuthCallback callback
+    ) {
+        if (role != UserRole.CUSTOMER && role != UserRole.SELLER) {
+            callback.onError(ErrorCode.UNKNOWN, "Ứng dụng không cho phép tự đăng ký tài khoản Admin.");
+            return;
+        }
+        firebaseAuth.createUserWithEmailAndPassword(email, password)
+                .addOnSuccessListener(result -> {
+                    FirebaseUser firebaseUser = result.getUser();
+                    if (firebaseUser == null) {
+                        callback.onError(ErrorCode.UNKNOWN, "Firebase không trả về người dùng vừa tạo.");
+                        return;
+                    }
+                    createProfile(firebaseUser, fullName, phone, role, callback);
+                })
+                .addOnFailureListener(exception -> notifyFailure(exception, callback));
+    }
+
+    @Override
+    public void signInWithGoogleIdToken(String idToken, AuthCallback callback) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+        firebaseAuth.signInWithCredential(credential)
+                .addOnSuccessListener(result -> {
+                    FirebaseUser firebaseUser = result.getUser();
+                    if (firebaseUser == null) {
+                        callback.onError(ErrorCode.UNKNOWN, "Google Sign-In không trả về người dùng.");
+                        return;
+                    }
+                    loadOrCreateGoogleProfile(firebaseUser, callback);
+                })
+                .addOnFailureListener(exception -> notifyFailure(exception, callback));
+    }
+
+    @Override
+    public void sendPasswordResetEmail(String email, ActionCallback callback) {
+        firebaseAuth.sendPasswordResetEmail(email)
+                .addOnSuccessListener(unused -> callback.onSuccess())
+                .addOnFailureListener(exception -> {
+                    ErrorCode errorCode = mapErrorCode(exception);
+                    callback.onError(errorCode, userMessageFor(errorCode));
+                });
+    }
+
+    @Override
+    public void signOut() { firebaseAuth.signOut(); }
+
+    private void loadRequiredProfile(FirebaseUser firebaseUser, AuthCallback callback) {
+        if (firebaseUser == null) {
+            callback.onError(ErrorCode.PROFILE_UNAVAILABLE, "Không thể đọc tài khoản Firebase hiện tại.");
+            return;
+        }
+        userRepository.getUser(firebaseUser.getUid(), new UserRepository.UserCallback() {
+            @Override
+            public void onSuccess(User user) { callback.onSuccess(user); }
+
+            @Override
+            public void onError(UserRepository.ProfileError error, String message) {
+                firebaseAuth.signOut();
+                callback.onError(mapProfileError(error), message);
+            }
+        });
+    }
+
+    private void loadOrCreateGoogleProfile(FirebaseUser firebaseUser, AuthCallback callback) {
+        userRepository.getUser(firebaseUser.getUid(), new UserRepository.UserCallback() {
+            @Override
+            public void onSuccess(User user) { callback.onSuccess(user); }
+
+            @Override
+            public void onError(UserRepository.ProfileError error, String message) {
+                if (error != UserRepository.ProfileError.NOT_FOUND) {
+                    if (error == UserRepository.ProfileError.DISABLED) { firebaseAuth.signOut(); }
+                    callback.onError(mapProfileError(error), message);
+                    return;
+                }
+                String displayName = firebaseUser.getDisplayName();
+                if (displayName == null || displayName.trim().isEmpty()) {
+                    displayName = "Khách hàng RescueFarm";
+                }
+                createProfile(
+                        firebaseUser,
+                        displayName,
+                        firebaseUser.getPhoneNumber(),
+                        UserRole.CUSTOMER,
+                        callback
+                );
+            }
+        });
+    }
+
+    private void createProfile(
+            FirebaseUser firebaseUser,
+            String fullName,
+            String phone,
+            UserRole role,
+            AuthCallback callback
+    ) {
+        String avatarUrl = firebaseUser.getPhotoUrl() == null
+                ? ""
+                : firebaseUser.getPhotoUrl().toString();
+        userRepository.createRegistrationProfile(
+                firebaseUser.getUid(),
+                firebaseUser.getEmail(),
+                fullName,
+                phone,
+                avatarUrl,
+                role,
+                new UserRepository.UserCallback() {
+                    @Override
+                    public void onSuccess(User user) { callback.onSuccess(user); }
+
+                    @Override
+                    public void onError(UserRepository.ProfileError error, String message) {
+                        firebaseUser.delete().addOnCompleteListener(unused ->
+                                callback.onError(mapProfileError(error), message)
+                        );
+                    }
+                }
+        );
+    }
+
+    private ErrorCode mapProfileError(UserRepository.ProfileError error) {
+        if (error == UserRepository.ProfileError.DISABLED) { return ErrorCode.ACCOUNT_DISABLED; }
+        if (error == UserRepository.ProfileError.NETWORK) { return ErrorCode.NETWORK; }
+        return ErrorCode.PROFILE_UNAVAILABLE;
+    }
+
+    private void notifyFailure(Exception exception, AuthCallback callback) {
+        ErrorCode errorCode = mapErrorCode(exception);
+        callback.onError(errorCode, userMessageFor(errorCode));
+    }
+
+    private ErrorCode mapErrorCode(Exception exception) {
+        if (exception instanceof FirebaseAuthUserCollisionException) { return ErrorCode.EMAIL_ALREADY_IN_USE; }
+        if (exception instanceof FirebaseAuthWeakPasswordException) { return ErrorCode.WEAK_PASSWORD; }
+        if (exception instanceof FirebaseAuthInvalidUserException) {
+            String firebaseErrorCode = ((FirebaseAuthInvalidUserException) exception).getErrorCode();
+            return "ERROR_USER_DISABLED".equals(firebaseErrorCode)
+                    ? ErrorCode.ACCOUNT_DISABLED
+                    : ErrorCode.INVALID_CREDENTIALS;
+        }
+        if (exception instanceof FirebaseAuthInvalidCredentialsException) { return ErrorCode.INVALID_CREDENTIALS; }
+        if (exception instanceof FirebaseNetworkException) { return ErrorCode.NETWORK; }
+        return ErrorCode.UNKNOWN;
+    }
+
+    private String userMessageFor(ErrorCode errorCode) {
+        switch (errorCode) {
+            case EMAIL_ALREADY_IN_USE:
+                return "Email này đã được sử dụng.";
+            case ACCOUNT_DISABLED:
+                return "Tài khoản đã bị vô hiệu hóa.";
+            case INVALID_CREDENTIALS:
+                return "Email hoặc mật khẩu không chính xác.";
+            case NETWORK:
+                return "Không thể kết nối Firebase. Hãy kiểm tra mạng và thử lại.";
+            case WEAK_PASSWORD:
+                return "Mật khẩu chưa đủ mạnh.";
+            case PROFILE_UNAVAILABLE:
+                return "Không thể tải hồ sơ người dùng.";
+            default:
+                return "Đã xảy ra lỗi xác thực. Vui lòng thử lại.";
+        }
+    }
+}
