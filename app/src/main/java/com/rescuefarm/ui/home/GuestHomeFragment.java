@@ -63,5 +63,10 @@ public class GuestHomeFragment extends Fragment {
                         R.id.action_guestHomeFragment_to_productListFragment
                 )
         );
+        view.findViewById(R.id.campaignButton).setOnClickListener(
+                Navigation.createNavigateOnClickListener(
+                        R.id.action_guestHomeFragment_to_campaignListFragment
+                )
+        );
     }
 }

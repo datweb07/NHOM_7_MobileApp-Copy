@@ -114,4 +114,37 @@
     <string name="save_batch_action">Lưu batch</string>
     <string name="clear_action">Nhập mới</string>
     <string name="batch_info_format">Khả dụng %.2f • Giữ %.2f • Đã bán %.2f\n%4$s • version %5$d</string>
+    <string name="campaigns_action">Chiến dịch giải cứu</string>
+    <string name="campaigns_title">Chiến dịch đang hoạt động</string>
+    <string name="campaign_detail_title">Chi tiết chiến dịch</string>
+    <string name="seller_campaigns_action">Quản lý chiến dịch</string>
+    <string name="seller_campaigns_title">Chiến dịch của cửa hàng</string>
+    <string name="add_campaign_action">Tạo chiến dịch</string>
+    <string name="campaign_editor_title">Thông tin chiến dịch</string>
+    <string name="campaign_title_hint">Tên chiến dịch</string>
+    <string name="campaign_description_hint">Mô tả chiến dịch</string>
+    <string name="rescue_reason_label">Nguyên nhân giải cứu</string>
+    <string name="rescue_mode_label">Hình thức điểm giải cứu</string>
+    <string name="campaign_targets_hint">Mỗi dòng: batchId=số lượng</string>
+    <string name="start_date_hint">Ngày bắt đầu (yyyy-MM-dd)</string>
+    <string name="end_date_hint">Ngày kết thúc (yyyy-MM-dd)</string>
+    <string name="latitude_hint">Vĩ độ điểm bán</string>
+    <string name="longitude_hint">Kinh độ điểm bán</string>
+    <string name="location_name_hint">Tên/địa chỉ điểm bán</string>
+    <string name="save_draft_action">Lưu bản nháp</string>
+    <string name="submit_approval_action">Gửi chờ duyệt</string>
+    <string name="nearby_mobile_action">Mobile gần tôi</string>
+    <string name="all_action">Tất cả</string>
+    <string name="no_campaigns">Không có chiến dịch phù hợp trong cache.</string>
+    <string name="campaign_progress_format">Tiến độ %.1f%% • %.2f / %.2f</string>
+    <string name="campaign_reason_format">%1$s • Mức độ %2$s</string>
+    <string name="detail_action">Chi tiết</string>
+    <string name="mobile_rescue_action">Mobile</string>
+    <string name="mobile_rescue_title">Điểm giải cứu di động</string>
+    <string name="mobile_rescue_foreground_notice">Vị trí chỉ được lấy khi bạn bấm cập nhật. Ứng dụng không theo dõi nền.</string>
+    <string name="mobile_location_fresh">Vị trí đang hoạt động (cập nhật trong 10 phút).</string>
+    <string name="mobile_location_stale">Vị trí đã cũ hoặc đang tắt; điểm này bị loại khỏi danh sách gần bạn.</string>
+    <string name="update_mobile_location_action">Cập nhật vị trí hiện tại</string>
+    <string name="stop_location_sharing_action">Tắt chia sẻ vị trí</string>
+    <string name="location_permission_required">Cần cấp quyền vị trí khi dùng tính năng này.</string>
 </resources>

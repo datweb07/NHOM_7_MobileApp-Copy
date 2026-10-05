@@ -53,6 +53,8 @@
             app:destination="@id/profileFragment" />
         <action android:id="@+id/action_guestHomeFragment_to_productListFragment"
             app:destination="@id/productListFragment" />
+        <action android:id="@+id/action_guestHomeFragment_to_campaignListFragment"
+            app:destination="@id/campaignListFragment" />
     </fragment>
 
     <fragment
@@ -112,6 +114,8 @@
             app:destination="@id/sellerApplicationFragment" />
         <action android:id="@+id/action_sellerProfileFragment_to_sellerProductListFragment"
             app:destination="@id/sellerProductListFragment" />
+        <action android:id="@+id/action_sellerProfileFragment_to_sellerCampaignListFragment"
+            app:destination="@id/sellerCampaignListFragment" />
     </fragment>
     <fragment android:id="@+id/sellerApplicationFragment"
         android:name="com.rescuefarm.ui.profile.SellerApplicationFragment"
@@ -134,4 +138,24 @@
         android:name="com.rescuefarm.ui.product.ProductEditorFragment" android:label="@string/product_editor_title" />
     <fragment android:id="@+id/batchManagerFragment"
         android:name="com.rescuefarm.ui.product.BatchManagerFragment" android:label="@string/batch_manager_title" />
+    <fragment android:id="@+id/campaignListFragment"
+        android:name="com.rescuefarm.ui.campaign.CampaignListFragment" android:label="@string/campaigns_title">
+        <action android:id="@+id/action_campaignListFragment_to_campaignDetailFragment"
+            app:destination="@id/campaignDetailFragment" />
+    </fragment>
+    <fragment android:id="@+id/campaignDetailFragment"
+        android:name="com.rescuefarm.ui.campaign.CampaignDetailFragment" android:label="@string/campaign_detail_title" />
+    <fragment android:id="@+id/sellerCampaignListFragment"
+        android:name="com.rescuefarm.ui.campaign.SellerCampaignListFragment" android:label="@string/seller_campaigns_title">
+        <action android:id="@+id/action_sellerCampaignListFragment_to_campaignEditorFragment"
+            app:destination="@id/campaignEditorFragment" />
+        <action android:id="@+id/action_sellerCampaignListFragment_to_campaignDetailFragment"
+            app:destination="@id/campaignDetailFragment" />
+        <action android:id="@+id/action_sellerCampaignListFragment_to_mobileRescueFragment"
+            app:destination="@id/mobileRescueFragment" />
+    </fragment>
+    <fragment android:id="@+id/campaignEditorFragment"
+        android:name="com.rescuefarm.ui.campaign.CampaignEditorFragment" android:label="@string/campaign_editor_title" />
+    <fragment android:id="@+id/mobileRescueFragment"
+        android:name="com.rescuefarm.ui.campaign.MobileRescueFragment" android:label="@string/mobile_rescue_title" />
 </navigation>

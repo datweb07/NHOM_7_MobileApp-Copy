@@ -29,7 +29,7 @@ import com.rescuefarm.data.local.entity.ProductCacheEntity;
                 PostCacheEntity.class,
                 GuestCartItemEntity.class
         },
-        version = 2,
+        version = 3,
         exportSchema = true
 )
 public abstract class RescueFarmDatabase extends RoomDatabase {
@@ -46,6 +46,17 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
             database.execSQL("ALTER TABLE product_batch_cache ADD COLUMN inventoryVersion INTEGER NOT NULL DEFAULT 0");
         }
     };
+    private static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE campaign_cache ADD COLUMN description TEXT");
+            database.execSQL("ALTER TABLE campaign_cache ADD COLUMN batchTargetsSerialized TEXT");
+            database.execSQL("ALTER TABLE campaign_cache ADD COLUMN startAtEpochMillis INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE campaign_cache ADD COLUMN endAtEpochMillis INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE campaign_cache ADD COLUMN latitude REAL NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE campaign_cache ADD COLUMN longitude REAL NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE campaign_cache ADD COLUMN locationName TEXT");
+        }
+    };
 
     public static RescueFarmDatabase getInstance(Context context) {
         if (instance == null) {
@@ -55,7 +66,7 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             RescueFarmDatabase.class,
                             DATABASE_NAME
-                    ).addMigrations(MIGRATION_1_2).build();
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build();
                 }
             }
         }

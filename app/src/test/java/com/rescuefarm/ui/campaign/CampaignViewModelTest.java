@@ -1,0 +1,67 @@
+package com.rescuefarm.ui.campaign;
+
+import static org.junit.Assert.*;
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+import com.rescuefarm.data.repository.AuthRepository;
+import com.rescuefarm.data.repository.CampaignRepository;
+import com.rescuefarm.domain.enums.UserRole;
+import com.rescuefarm.domain.enums.RescueMode;
+import com.rescuefarm.domain.enums.RescueReason;
+import com.rescuefarm.domain.model.RescueCampaign;
+import com.rescuefarm.service.location.LocationProvider;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.Rule;
+import org.junit.Test;
+
+public class CampaignViewModelTest {
+    @Rule public final InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
+    @Test public void invalidTargets_doNotReachRepository() {
+        FakeCampaignRepository repository = new FakeCampaignRepository();
+        CampaignViewModel viewModel = new CampaignViewModel(repository, new FakeAuth(), new FakeLocation());
+        viewModel.save("", "Campaign", "", RescueReason.OVER_SUPPLY, RescueMode.FIXED_POINT,
+                "bad-target", "2027-01-01", "2027-01-03", "10", "106", "A", true);
+        assertFalse(repository.saveCalled);
+        assertEquals(CampaignScreenState.Status.ERROR, viewModel.getState().getValue().getStatus());
+    }
+    @Test public void validSubmit_reachesRepositoryAsPending() {
+        FakeCampaignRepository repository = new FakeCampaignRepository();
+        CampaignViewModel viewModel = new CampaignViewModel(repository, new FakeAuth(), new FakeLocation());
+        viewModel.save("", "Campaign", "", RescueReason.OVER_SUPPLY, RescueMode.MOBILE_POINT,
+                "batch=10", "2027-01-01", "2027-01-03", "10", "106", "A", true);
+        assertTrue(repository.saveCalled); assertTrue(repository.submitCalled);
+        assertEquals(CampaignScreenState.Status.SAVED, viewModel.getState().getValue().getStatus());
+    }
+    private static final class FakeCampaignRepository implements CampaignRepository {
+        private boolean saveCalled, submitCalled;
+        private final MutableLiveData<List<RescueCampaign>> values = new MutableLiveData<>(new ArrayList<>());
+        @Override public LiveData<List<RescueCampaign>> observeActiveCampaigns() { return values; }
+        @Override public LiveData<List<RescueCampaign>> observeSellerCampaigns(String id) { return values; }
+        @Override public void refreshActiveCampaigns(ActionCallback callback) { callback.onSuccess(); }
+        @Override public void refreshSellerCampaigns(String id, ActionCallback callback) { callback.onSuccess(); }
+        @Override public void getCampaign(String id, CampaignCallback callback) { }
+        @Override public void saveCampaign(RescueCampaign campaign, boolean submit, CampaignCallback callback) {
+            saveCalled = true; submitCalled = submit; callback.onSuccess(campaign);
+        }
+        @Override public void updateMobileLocation(String id, double lat, double lng, boolean sharing, CampaignCallback callback) { }
+        @Override public void mutateReservation(String campaignId, String batchId, long version,
+                ReservationMutation mutation, double quantity, CampaignCallback callback) { }
+    }
+    private static final class FakeAuth implements AuthRepository {
+        @Override public boolean isAvailable() { return true; }
+        @Override public boolean isAuthenticated() { return true; }
+        @Override public String getCurrentUserId() { return "seller"; }
+        @Override public void restoreSession(AuthCallback callback) { }
+        @Override public void signIn(String email, String password, AuthCallback callback) { }
+        @Override public void register(String email, String password, String name, String phone, UserRole role, AuthCallback callback) { }
+        @Override public void signInWithGoogleIdToken(String token, AuthCallback callback) { }
+        @Override public void sendPasswordResetEmail(String email, ActionCallback callback) { }
+        @Override public void signOut() { }
+    }
+    private static final class FakeLocation implements LocationProvider {
+        @Override public void getCurrentLocation(LocationCallback callback) { callback.onLocationAvailable(10, 106); }
+        @Override public void reverseGeocode(double lat, double lng, GeocodeCallback callback) { }
+    }
+}

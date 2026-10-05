@@ -20,6 +20,11 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/users/$(userId)).data.sellerStatus == 'APPROVED';
     }
 
+    function isAdmin() {
+      return isSignedIn()
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
     function ownsProduct(productId) {
       return isSignedIn()
           && get(/databases/$(database)/documents/products/$(productId)).data.sellerId == request.auth.uid;
@@ -68,12 +73,69 @@ service cloud.firestore {
               && after.availableQuantity == after.initialQuantity)
           || (after.soldQuantity == before.soldQuantity
               && before.availableQuantity - after.availableQuantity
-                  == after.reservedQuantity - before.reservedQuantity
+                  - (after.reservedQuantity - before.reservedQuantity) <= 0.000001
+              && before.availableQuantity - after.availableQuantity
+                  - (after.reservedQuantity - before.reservedQuantity) >= -0.000001
               && (after.availableQuantity >= before.availableQuantity
                   || before.expiryDate > request.time))
           || (after.availableQuantity == before.availableQuantity
               && before.reservedQuantity - after.reservedQuantity
-                  == after.soldQuantity - before.soldQuantity);
+                  - (after.soldQuantity - before.soldQuantity) <= 0.000001
+              && before.reservedQuantity - after.reservedQuantity
+                  - (after.soldQuantity - before.soldQuantity) >= -0.000001);
+    }
+
+    function validCampaign(data) {
+      return data.id is string
+          && data.sellerId is string
+          && data.title is string
+          && data.title.size() >= 3
+          && data.rescueReason in [
+            'OVER_SUPPLY', 'NEAR_EXPIRY', 'SEASONAL_HARVEST', 'WEATHER_IMPACT',
+            'ORDER_CANCELLED', 'LOGISTICS_DISRUPTION', 'DEMAND_DROP', 'COSMETIC_GRADE'
+          ]
+          && data.urgencyLevel in ['NORMAL', 'HIGH', 'CRITICAL']
+          && data.rescueMode in ['FIXED_POINT', 'MOBILE_POINT']
+          && data.batchTargets is map
+          && data.batchTargets.size() > 0
+          && data.batchTargets.size() <= 8
+          && data.targetQuantity is number
+          && data.targetQuantity > 0
+          && data.reservedQuantity is number
+          && data.rescuedQuantity is number
+          && data.reservedQuantity >= 0
+          && data.rescuedQuantity >= 0
+          && data.reservedQuantity + data.rescuedQuantity <= data.targetQuantity + 0.000001
+          && data.startDate is timestamp
+          && data.endDate is timestamp
+          && data.startDate < data.endDate
+          && data.latitude is number
+          && data.latitude >= -90 && data.latitude <= 90
+          && data.longitude is number
+          && data.longitude >= -180 && data.longitude <= 180
+          && data.currentLatitude is number
+          && data.currentLatitude >= -90 && data.currentLatitude <= 90
+          && data.currentLongitude is number
+          && data.currentLongitude >= -180 && data.currentLongitude <= 180
+          && (data.locationUpdatedAt == null || data.locationUpdatedAt is timestamp)
+          && data.locationSharingEnabled is bool
+          && (data.rescueMode == 'MOBILE_POINT' || data.locationSharingEnabled == false)
+          && data.locationName is string
+          && data.status in [
+            'DRAFT', 'PENDING_APPROVAL', 'ACTIVE', 'COMPLETED', 'EXPIRED', 'REJECTED', 'STOPPED'
+          ];
+    }
+
+    function validCampaignProgressTransition(before, after) {
+      return (after.rescuedQuantity == before.rescuedQuantity
+              && after.reservedQuantity >= before.reservedQuantity)
+          || (after.reservedQuantity <= before.reservedQuantity
+              && after.rescuedQuantity - before.rescuedQuantity
+                  - (before.reservedQuantity - after.reservedQuantity) <= 0.000001
+              && after.rescuedQuantity - before.rescuedQuantity
+                  - (before.reservedQuantity - after.reservedQuantity) >= -0.000001)
+          || (after.rescuedQuantity == before.rescuedQuantity
+              && after.reservedQuantity <= before.reservedQuantity);
     }
 
     function hasNoCredentialFields(data) {
@@ -208,6 +270,57 @@ service cloud.firestore {
           && resource.data.reservedQuantity == 0
           && resource.data.soldQuantity == 0
           && (resource.data.activeCampaignId == null || resource.data.activeCampaignId == '');
+    }
+
+    match /campaigns/{campaignId} {
+      allow get, list: if resource.data.status == 'ACTIVE'
+          || (isSignedIn() && resource.data.sellerId == request.auth.uid)
+          || isAdmin();
+      allow create: if isApprovedSeller(request.auth.uid)
+          && request.resource.data.id == campaignId
+          && request.resource.data.sellerId == request.auth.uid
+          && request.resource.data.status in ['DRAFT', 'PENDING_APPROVAL']
+          && request.resource.data.reservedQuantity == 0
+          && request.resource.data.rescuedQuantity == 0
+          && validCampaign(request.resource.data)
+          && hasNoCredentialFields(request.resource.data);
+      allow update: if (
+            (isApprovedSeller(request.auth.uid)
+              && resource.data.sellerId == request.auth.uid
+              && resource.data.status in ['DRAFT', 'REJECTED']
+              && request.resource.data.status in ['DRAFT', 'PENDING_APPROVAL']
+              && request.resource.data.reservedQuantity == resource.data.reservedQuantity
+              && request.resource.data.rescuedQuantity == resource.data.rescuedQuantity)
+            || (isApprovedSeller(request.auth.uid)
+              && resource.data.sellerId == request.auth.uid
+              && resource.data.status == 'ACTIVE'
+              && resource.data.rescueMode == 'MOBILE_POINT'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'currentLatitude', 'currentLongitude', 'locationUpdatedAt',
+                'locationSharingEnabled', 'updatedAt'
+              ])
+              && (request.resource.data.locationSharingEnabled == false
+                || request.resource.data.locationUpdatedAt == request.time))
+            || (isApprovedSeller(request.auth.uid)
+              && resource.data.sellerId == request.auth.uid
+              && resource.data.status == 'ACTIVE'
+              && request.resource.data.status in ['ACTIVE', 'COMPLETED']
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'reservedQuantity', 'rescuedQuantity', 'status', 'updatedAt'
+              ])
+              && validCampaignProgressTransition(resource.data, request.resource.data))
+            || (isAdmin()
+              && resource.data.status == 'PENDING_APPROVAL'
+              && request.resource.data.status in ['ACTIVE', 'REJECTED']
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'status', 'urgencyLevel', 'updatedAt'
+              ]))
+          )
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.sellerId == resource.data.sellerId
+          && validCampaign(request.resource.data)
+          && hasNoCredentialFields(request.resource.data);
+      allow delete: if false;
     }
 
     match /{document=**} {

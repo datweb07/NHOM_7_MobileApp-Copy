@@ -11,16 +11,23 @@ public class CampaignCacheEntity {
     public String id;
     public String sellerId;
     public String title;
+    public String description;
     public String rescueReason;
     public String urgencyLevel;
     public String rescueMode;
+    public String batchTargetsSerialized;
     public double targetQuantity;
     public double reservedQuantity;
     public double rescuedQuantity;
+    public long startAtEpochMillis;
+    public long endAtEpochMillis;
+    public double latitude;
+    public double longitude;
     public double currentLatitude;
     public double currentLongitude;
     public long locationUpdatedAtEpochMillis;
     public boolean locationSharingEnabled;
+    public String locationName;
     public String status;
     public long cachedAtEpochMillis;
 

@@ -50,6 +50,39 @@ public class RescueCampaign {
         this.targetQuantity = targetQuantity;
     }
 
+    public static RescueCampaign restore(String id, String sellerId, String title,
+            String description, RescueReason rescueReason, UrgencyLevel urgencyLevel,
+            RescueMode rescueMode, Map<String, Double> batchTargets, double targetQuantity,
+            double reservedQuantity, double rescuedQuantity, Date startDate, Date endDate,
+            double latitude, double longitude, double currentLatitude, double currentLongitude,
+            Date locationUpdatedAt, boolean locationSharingEnabled, String locationName,
+            CampaignStatus status) {
+        RescueCampaign campaign = new RescueCampaign(id, sellerId, targetQuantity);
+        campaign.defineCampaign(title, description, rescueReason, rescueMode, batchTargets);
+        campaign.schedule(startDate, endDate);
+        if (reservedQuantity < 0.0 || rescuedQuantity < 0.0
+                || reservedQuantity + rescuedQuantity > targetQuantity + QUANTITY_TOLERANCE) {
+            throw new IllegalStateException("Campaign progress quantities are invalid");
+        }
+        validateCoordinates(latitude, longitude);
+        validateCoordinates(currentLatitude, currentLongitude);
+        campaign.reservedQuantity = reservedQuantity;
+        campaign.rescuedQuantity = rescuedQuantity;
+        campaign.latitude = latitude;
+        campaign.longitude = longitude;
+        campaign.currentLatitude = currentLatitude;
+        campaign.currentLongitude = currentLongitude;
+        campaign.locationUpdatedAt = copy(locationUpdatedAt);
+        if (locationSharingEnabled && rescueMode != RescueMode.MOBILE_POINT) {
+            throw new IllegalStateException("Only mobile campaigns can share a location");
+        }
+        campaign.locationSharingEnabled = locationSharingEnabled;
+        campaign.locationName = clean(locationName);
+        campaign.urgencyLevel = urgencyLevel == null ? UrgencyLevel.NORMAL : urgencyLevel;
+        campaign.status = status == null ? CampaignStatus.DRAFT : status;
+        return campaign;
+    }
+
     public void defineCampaign(
             String title,
             String description,
@@ -68,15 +101,19 @@ public class RescueCampaign {
         if (Math.abs(targetQuantity - totalBatchTarget) > QUANTITY_TOLERANCE) {
             throw new IllegalArgumentException("Batch targets must equal the campaign target quantity");
         }
-        this.title = title;
-        this.description = description;
+        if (clean(title).length() < 3) {
+            throw new IllegalArgumentException("Campaign title must have at least 3 characters");
+        }
+        this.title = clean(title);
+        this.description = clean(description);
         this.rescueReason = rescueReason;
         this.rescueMode = rescueMode;
         this.batchTargets = new HashMap<>(batchTargets);
     }
 
     public double calculateProgress() {
-        return targetQuantity <= 0.0 ? 0.0 : rescuedQuantity / targetQuantity * 100.0;
+        return targetQuantity <= 0.0 ? 0.0
+                : Math.min(100.0, rescuedQuantity / targetQuantity * 100.0);
     }
 
     public double calculateRemainingQuantity() {
@@ -102,11 +139,12 @@ public class RescueCampaign {
         if (startDate == null || endDate == null || !endDate.after(startDate)) {
             throw new IllegalArgumentException("Campaign end date must be after its start date");
         }
-        this.startDate = startDate;
-        this.endDate = endDate;
+        this.startDate = copy(startDate);
+        this.endDate = copy(endDate);
     }
 
     public String getHighlightLabel() {
+        if (status != CampaignStatus.ACTIVE) { return ""; }
         if (rescueMode == RescueMode.MOBILE_POINT) { return "ĐIỂM GIẢI CỨU DI ĐỘNG"; }
         if (urgencyLevel == UrgencyLevel.CRITICAL) { return "CẦN GIẢI CỨU GẤP"; }
         if (urgencyLevel == UrgencyLevel.HIGH) { return "CẦN GIẢI CỨU SỚM"; }
@@ -124,6 +162,10 @@ public class RescueCampaign {
         if (reservedQuantity + QUANTITY_TOLERANCE < quantity) { throw new IllegalStateException("Campaign does not have enough reserved quantity"); }
         reservedQuantity -= quantity;
         rescuedQuantity += quantity;
+        if (status == CampaignStatus.ACTIVE
+                && rescuedQuantity + QUANTITY_TOLERANCE >= targetQuantity) {
+            status = CampaignStatus.COMPLETED;
+        }
     }
 
     public void releaseReservation(double quantity) {
@@ -134,16 +176,24 @@ public class RescueCampaign {
 
     public void updateCurrentLocation(double latitude, double longitude, Date updatedAt) {
         if (rescueMode != RescueMode.MOBILE_POINT) { throw new IllegalStateException("Only a mobile rescue campaign can update its current location"); }
+        if (updatedAt == null) { throw new IllegalArgumentException("Location update time is required"); }
         validateCoordinates(latitude, longitude);
         currentLatitude = latitude;
         currentLongitude = longitude;
-        locationUpdatedAt = updatedAt;
+        locationUpdatedAt = copy(updatedAt);
+    }
+
+    public void updateFixedLocation(double latitude, double longitude, String locationName) {
+        validateCoordinates(latitude, longitude);
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.locationName = clean(locationName);
     }
 
     public boolean isLocationFresh(Date now) {
         if (rescueMode != RescueMode.MOBILE_POINT || !locationSharingEnabled || locationUpdatedAt == null || now.before(locationUpdatedAt)) { return false; }
-        long ageMinutes = TimeUnit.MILLISECONDS.toMinutes(now.getTime() - locationUpdatedAt.getTime());
-        return ageMinutes <= MOBILE_LOCATION_FRESHNESS_MINUTES;
+        long ageMillis = now.getTime() - locationUpdatedAt.getTime();
+        return ageMillis <= TimeUnit.MINUTES.toMillis(MOBILE_LOCATION_FRESHNESS_MINUTES);
     }
 
     public void setLocationSharingEnabled(boolean enabled) {
@@ -154,7 +204,13 @@ public class RescueCampaign {
     }
 
     public void submitForApproval() {
-        if (rescueReason == null || batchTargets == null || batchTargets.isEmpty()) { throw new IllegalStateException("Campaign requires a rescue reason and at least one batch target"); }
+        if (status != CampaignStatus.DRAFT && status != CampaignStatus.REJECTED) {
+            throw new IllegalStateException("Only draft or rejected campaigns can be submitted");
+        }
+        if (rescueReason == null || batchTargets == null || batchTargets.isEmpty()
+                || startDate == null || endDate == null) {
+            throw new IllegalStateException("Campaign requires batches, reason and schedule");
+        }
         status = CampaignStatus.PENDING_APPROVAL;
     }
 
@@ -173,6 +229,12 @@ public class RescueCampaign {
         return TimeUnit.MILLISECONDS.toDays(end.getTime() - start.getTime());
     }
 
+    private static Date copy(Date value) {
+        return value == null ? null : new Date(value.getTime());
+    }
+
+    private static String clean(String value) { return value == null ? "" : value.trim(); }
+
     public String getId() { return id; }
     public String getSellerId() { return sellerId; }
     public String getTitle() { return title; }
@@ -184,13 +246,13 @@ public class RescueCampaign {
     public double getTargetQuantity() { return targetQuantity; }
     public double getReservedQuantity() { return reservedQuantity; }
     public double getRescuedQuantity() { return rescuedQuantity; }
-    public Date getStartDate() { return startDate; }
-    public Date getEndDate() { return endDate; }
+    public Date getStartDate() { return copy(startDate); }
+    public Date getEndDate() { return copy(endDate); }
     public double getLatitude() { return latitude; }
     public double getLongitude() { return longitude; }
     public double getCurrentLatitude() { return currentLatitude; }
     public double getCurrentLongitude() { return currentLongitude; }
-    public Date getLocationUpdatedAt() { return locationUpdatedAt; }
+    public Date getLocationUpdatedAt() { return copy(locationUpdatedAt); }
     public boolean isLocationSharingEnabled() { return locationSharingEnabled; }
     public String getLocationName() { return locationName; }
     public CampaignStatus getStatus() { return status; }
