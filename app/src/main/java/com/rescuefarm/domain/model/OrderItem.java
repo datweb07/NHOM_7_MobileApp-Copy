@@ -32,6 +32,15 @@ public class OrderItem {
         this.subtotal = calculateSubtotal();
     }
 
+    public static OrderItem snapshot(String id, String orderId, String productId, String batchId,
+            String productName, String productImage, String unit, double originalPrice,
+            double rescuePrice, double finalPrice, double quantity) {
+        OrderItem value = new OrderItem(productId, batchId, productName, productImage, unit,
+                originalPrice, rescuePrice, finalPrice, quantity);
+        value.id = required(id, "Order item id"); value.orderId = required(orderId, "Order id");
+        return value;
+    }
+
     public double calculateSubtotal() { return finalPriceSnapshot * quantity; }
     public String getId() { return id; }
     public String getOrderId() { return orderId; }
@@ -45,4 +54,8 @@ public class OrderItem {
     public double getFinalPriceSnapshot() { return finalPriceSnapshot; }
     public double getQuantity() { return quantity; }
     public double getSubtotal() { return subtotal; }
+    private static String required(String value, String field) {
+        String clean = value == null ? "" : value.trim();
+        if (clean.isEmpty()) throw new IllegalArgumentException(field + " is required"); return clean;
+    }
 }

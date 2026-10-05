@@ -152,7 +152,14 @@
             app:destination="@id/cartFragment" />
     </fragment>
     <fragment android:id="@+id/cartFragment"
-        android:name="com.rescuefarm.ui.cart.CartFragment" android:label="@string/cart_title" />
+        android:name="com.rescuefarm.ui.cart.CartFragment" android:label="@string/cart_title">
+        <action android:id="@+id/action_cartFragment_to_checkoutFragment" app:destination="@id/checkoutFragment" />
+    </fragment>
+    <fragment android:id="@+id/checkoutFragment" android:name="com.rescuefarm.ui.checkout.CheckoutFragment"
+        android:label="@string/checkout_title"><action android:id="@+id/action_checkoutFragment_to_orderConfirmationFragment"
+        app:destination="@id/orderConfirmationFragment" /></fragment>
+    <fragment android:id="@+id/orderConfirmationFragment" android:name="com.rescuefarm.ui.checkout.OrderConfirmationFragment"
+        android:label="@string/order_confirmation_title" />
     <fragment android:id="@+id/sellerProductListFragment"
         android:name="com.rescuefarm.ui.product.SellerProductListFragment" android:label="@string/seller_products_title">
         <action android:id="@+id/action_sellerProductListFragment_to_productEditorFragment"

@@ -32,3 +32,7 @@ Phase 8 không cần dịch vụ hay dependency mới. Deploy Firestore rules v�
 ## Cart sync
 
 Phase 9 không cần dependency hay Room migration mới. Deploy Firestore rules cho `customerCarts` và kiểm tra theo `docs/PHASE9_SETUP.md`.
+
+## Checkout reservation
+
+Phase 10 cần deploy Firestore rules và index guest tracking. Xem `docs/PHASE10_SETUP.md`; không cần dependency mới.

@@ -1,0 +1,2 @@
+package com.rescuefarm.service.order;
+public final class CheckoutIdempotencyPolicy { private CheckoutIdempotencyPolicy(){} public static boolean isReplay(String existingRequestId,String existingOwnerId,CheckoutRequest incoming){if(incoming==null)return false;if(!incoming.requestId.equals(existingRequestId)||!incoming.ownerId.equals(existingOwnerId))throw new IllegalStateException("IDEMPOTENCY_CONFLICT");return true;} }

@@ -7,6 +7,14 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "orderCode", "order": "ASCENDING" },
+        { "fieldPath": "receiverPhone", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -94,6 +94,65 @@ service cloud.firestore {
           && hasNoCredentialFields(data);
     }
 
+    function validOrder(data, orderId) {
+      return data.id == orderId && data.requestId == orderId
+          && data.ownerType in ['GUEST', 'CUSTOMER'] && data.ownerId is string
+          && data.sellerId is string && data.orderCode is string
+          && data.fulfillmentType in ['DELIVERY', 'PICKUP', 'ON_SITE_RESCUE']
+          && data.receiverName is string && data.receiverPhone is string
+          && data.receiverPhone.size() >= 9 && data.receiverAddress is string
+          && data.subtotal is number && data.subtotal >= 0
+          && data.quantityDiscount is number && data.shippingFee is number
+          && data.totalAmount is number && data.totalAmount >= 0
+          && data.totalAmount == data.subtotal - data.quantityDiscount + data.shippingFee
+          && data.paymentMethod in ['COD', 'BANK_TRANSFER', 'CASH_ON_SITE']
+          && data.paymentStatus in ['UNPAID', 'PENDING'] && data.status == 'PENDING'
+          && data.campaignReservedQuantity is number && data.campaignReservedQuantity >= 0
+          && data.batchReservations is map && data.batchReservations.size() > 0
+          && data.batchReservations.size() <= 20
+          && data.createdAt is timestamp && data.updatedAt is timestamp;
+    }
+
+    function checkoutOwnerAllowed(order) {
+      return (order.ownerType == 'CUSTOMER' && hasRole(order.ownerId, 'CUSTOMER'))
+          || (order.ownerType == 'GUEST' && request.auth == null);
+    }
+
+    function checkoutBatchReservation(before, after, batchId) {
+      let orderId = after.lastReservationOrderId;
+      let order = getAfter(/databases/$(database)/documents/orders/$(orderId)).data;
+      let quantity = order.batchReservations[batchId];
+      return order.status == 'PENDING' && checkoutOwnerAllowed(order)
+          && ((before.activeCampaignId == null && order.campaignId == '')
+            || before.activeCampaignId == '' && order.campaignId == ''
+            || before.activeCampaignId == order.campaignId)
+          && quantity is number && quantity > 0
+          && after.availableQuantity == before.availableQuantity - quantity
+          && after.reservedQuantity == before.reservedQuantity + quantity
+          && after.soldQuantity == before.soldQuantity
+          && after.initialQuantity == before.initialQuantity
+          && after.inventoryVersion == before.inventoryVersion + 1
+          && after.lastReservationQuantity == quantity
+          && after.diff(before).affectedKeys().hasOnly([
+            'availableQuantity', 'reservedQuantity', 'status', 'inventoryVersion',
+            'lastReservationOrderId', 'lastReservationQuantity', 'updatedAt'
+          ]);
+    }
+
+    function checkoutCampaignReservation(before, after) {
+      let orderId = after.lastReservationOrderId;
+      let order = getAfter(/databases/$(database)/documents/orders/$(orderId)).data;
+      return order.status == 'PENDING' && checkoutOwnerAllowed(order)
+          && order.campaignId == before.id
+          && order.campaignReservedQuantity > 0
+          && after.reservedQuantity == before.reservedQuantity + order.campaignReservedQuantity
+          && after.rescuedQuantity == before.rescuedQuantity
+          && after.lastReservationQuantity == order.campaignReservedQuantity
+          && after.diff(before).affectedKeys().hasOnly([
+            'reservedQuantity', 'lastReservationOrderId', 'lastReservationQuantity', 'updatedAt'
+          ]);
+    }
+
     function validInventoryTransition(before, after) {
       return (before.reservedQuantity == 0
               && before.soldQuantity == 0
@@ -318,14 +377,16 @@ service cloud.firestore {
           && request.resource.data.inventoryVersion == 1
           && validBatch(request.resource.data)
           && hasNoCredentialFields(request.resource.data);
-      allow update: if isApprovedSeller(request.auth.uid)
-          && ownsProduct(resource.data.productId)
-          && request.resource.data.id == resource.data.id
-          && request.resource.data.productId == resource.data.productId
-          && request.resource.data.inventoryVersion == resource.data.inventoryVersion + 1
-          && validBatch(request.resource.data)
-          && validInventoryTransition(resource.data, request.resource.data)
-          && hasNoCredentialFields(request.resource.data);
+      allow update: if (isApprovedSeller(request.auth.uid)
+            && ownsProduct(resource.data.productId)
+            && request.resource.data.id == resource.data.id
+            && request.resource.data.productId == resource.data.productId
+            && request.resource.data.inventoryVersion == resource.data.inventoryVersion + 1
+            && validBatch(request.resource.data)
+            && validInventoryTransition(resource.data, request.resource.data)
+            && hasNoCredentialFields(request.resource.data))
+          || (checkoutBatchReservation(resource.data, request.resource.data, batchId)
+            && validBatch(request.resource.data));
       allow delete: if isApprovedSeller(request.auth.uid)
           && ownsProduct(resource.data.productId)
           && resource.data.reservedQuantity == 0
@@ -334,7 +395,8 @@ service cloud.firestore {
     }
 
     match /promotions/{promotionId} {
-      allow get, list: if (resource.data.active == true
+      allow get: if true;
+      allow list: if (resource.data.active == true
             && resource.data.startDate <= request.time
             && resource.data.endDate > request.time)
           || (isSignedIn() && resource.data.sellerId == request.auth.uid)
@@ -361,6 +423,29 @@ service cloud.firestore {
       allow create, update: if hasRole(customerId, 'CUSTOMER')
           && validCustomerCart(request.resource.data, customerId);
       allow delete: if hasRole(customerId, 'CUSTOMER');
+    }
+
+    match /orders/{orderId} {
+      allow get, list: if (isSignedIn() && resource.data.ownerType == 'CUSTOMER'
+            && resource.data.ownerId == request.auth.uid)
+          || resource.data.ownerType == 'GUEST';
+      allow create: if validOrder(request.resource.data, orderId)
+          && checkoutOwnerAllowed(request.resource.data)
+          && !exists(/databases/$(database)/documents/orders/$(orderId));
+      allow update, delete: if false;
+      match /items/{itemId} {
+        allow get, list: if (isSignedIn()
+              && get(/databases/$(database)/documents/orders/$(orderId)).data.ownerId == request.auth.uid)
+            || get(/databases/$(database)/documents/orders/$(orderId)).data.ownerType == 'GUEST';
+        allow create: if getAfter(/databases/$(database)/documents/orders/$(orderId)).data.status == 'PENDING'
+            && checkoutOwnerAllowed(getAfter(/databases/$(database)/documents/orders/$(orderId)).data)
+            && request.resource.data.id == itemId && request.resource.data.orderId == orderId
+            && request.resource.data.batchId == itemId
+            && request.resource.data.quantity is number && request.resource.data.quantity > 0
+            && request.resource.data.finalPriceSnapshot is number
+            && request.resource.data.finalPriceSnapshot >= 0;
+        allow update, delete: if false;
+      }
     }
 
     match /campaigns/{campaignId} {
@@ -400,6 +485,7 @@ service cloud.firestore {
                 'reservedQuantity', 'rescuedQuantity', 'status', 'updatedAt'
               ])
               && validCampaignProgressTransition(resource.data, request.resource.data))
+            || (checkoutCampaignReservation(resource.data, request.resource.data))
             || (isAdmin()
               && resource.data.status == 'PENDING_APPROVAL'
               && request.resource.data.status in ['ACTIVE', 'REJECTED']

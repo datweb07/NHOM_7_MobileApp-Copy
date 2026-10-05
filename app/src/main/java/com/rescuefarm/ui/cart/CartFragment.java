@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import com.google.android.material.card.MaterialCardView;
 import com.rescuefarm.R;
 import com.rescuefarm.domain.model.Cart;
@@ -54,6 +55,8 @@ public class CartFragment extends Fragment {
         });
         view.findViewById(R.id.cartRefreshButton).setOnClickListener(v -> viewModel.refreshAndRevalidate());
         view.findViewById(R.id.cartClearButton).setOnClickListener(v -> viewModel.clear());
+        view.findViewById(R.id.cartCheckoutButton).setOnClickListener(Navigation.createNavigateOnClickListener(
+                R.id.action_cartFragment_to_checkoutFragment));
         viewModel.refreshAndRevalidate();
     }
     private void render(Cart cart) {

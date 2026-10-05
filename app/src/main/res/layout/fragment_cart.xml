@@ -30,5 +30,8 @@
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_sm" android:text="@string/cart_no_reservation_notice"
             android:textColor="@color/rescue_on_surface_variant" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/cartCheckoutButton"
+            android:layout_width="match_parent" android:layout_height="@dimen/touch_target_min"
+            android:layout_marginTop="@dimen/space_md" android:text="@string/checkout_action" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
