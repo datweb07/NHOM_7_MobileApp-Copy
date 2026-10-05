@@ -3,8 +3,11 @@ package com.rescuefarm.data.repository;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 import com.rescuefarm.data.local.dao.CampaignCacheDao;
+import com.rescuefarm.data.local.dao.BannerCacheDao;
 import com.rescuefarm.data.local.entity.CampaignCacheEntity;
 import com.rescuefarm.data.local.mapper.CampaignCacheMapper;
+import com.rescuefarm.data.local.mapper.BannerCacheMapper;
+import com.rescuefarm.domain.model.Banner;
 import com.rescuefarm.domain.model.RescueCampaign;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -12,9 +15,11 @@ import java.util.concurrent.ExecutorService;
 public class OfflineCampaignRepository implements CampaignRepository {
     private static final String MESSAGE = "Firebase chưa được cấu hình; đang hiển thị cache chiến dịch.";
     private final CampaignCacheDao dao;
+    private final BannerCacheDao bannerDao;
     private final ExecutorService executor;
-    public OfflineCampaignRepository(CampaignCacheDao dao, ExecutorService executor) {
-        this.dao = dao; this.executor = executor;
+    public OfflineCampaignRepository(CampaignCacheDao dao, BannerCacheDao bannerDao,
+            ExecutorService executor) {
+        this.dao = dao; this.bannerDao = bannerDao; this.executor = executor;
     }
     @Override public LiveData<List<RescueCampaign>> observeActiveCampaigns() {
         return Transformations.map(dao.observeActiveCampaigns(), CampaignCacheMapper::campaigns);
@@ -22,7 +27,11 @@ public class OfflineCampaignRepository implements CampaignRepository {
     @Override public LiveData<List<RescueCampaign>> observeSellerCampaigns(String sellerId) {
         return Transformations.map(dao.observeSellerCampaigns(sellerId), CampaignCacheMapper::campaigns);
     }
+    @Override public LiveData<List<Banner>> observeActiveBanners() {
+        return Transformations.map(bannerDao.observeActiveBanners(), BannerCacheMapper::banners);
+    }
     @Override public void refreshActiveCampaigns(ActionCallback callback) { unavailable(callback); }
+    @Override public void refreshBanners(ActionCallback callback) { unavailable(callback); }
     @Override public void refreshSellerCampaigns(String sellerId, ActionCallback callback) { unavailable(callback); }
     @Override public void getCampaign(String campaignId, CampaignCallback callback) {
         executor.execute(() -> {

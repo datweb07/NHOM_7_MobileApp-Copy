@@ -323,6 +323,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /banners/{bannerId} {
+      allow get, list: if resource.data.active == true;
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

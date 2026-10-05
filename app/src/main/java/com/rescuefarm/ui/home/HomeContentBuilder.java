@@ -1,0 +1,89 @@
+package com.rescuefarm.ui.home;
+
+import com.rescuefarm.domain.enums.CampaignStatus;
+import com.rescuefarm.domain.enums.RescueMode;
+import com.rescuefarm.domain.enums.UrgencyLevel;
+import com.rescuefarm.domain.model.Banner;
+import com.rescuefarm.domain.model.Category;
+import com.rescuefarm.domain.model.Product;
+import com.rescuefarm.domain.model.RescueCampaign;
+import com.rescuefarm.service.location.CampaignLocationService;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+public final class HomeContentBuilder {
+    private static final long ENDING_SOON_MILLIS = TimeUnit.DAYS.toMillis(3);
+    private final CampaignLocationService locationService = new CampaignLocationService();
+
+    public HomeViewState build(List<Banner> bannerSource, List<Product> productSource,
+            List<RescueCampaign> campaignSource, List<Category> categorySource,
+            Double latitude, Double longitude, Date now, HomeViewState.LocationState locationState,
+            boolean refreshing, String message) {
+        Date safeNow = now == null ? new Date() : now;
+        List<Banner> banners = new ArrayList<>();
+        if (bannerSource != null) for (Banner value : bannerSource) {
+            if (value != null && value.isVisibleAt(safeNow)) banners.add(value);
+        }
+        banners.sort(Comparator.comparingInt(Banner::getDisplayOrder).thenComparing(Banner::getId));
+
+        List<RescueCampaign> active = new ArrayList<>();
+        if (campaignSource != null) for (RescueCampaign value : campaignSource) {
+            if (value != null && value.getStatus() == CampaignStatus.ACTIVE) active.add(value);
+        }
+        active.sort(campaignComparator());
+        List<RescueCampaign> critical = new ArrayList<>();
+        List<RescueCampaign> mobile = new ArrayList<>();
+        List<RescueCampaign> fixed = new ArrayList<>();
+        List<RescueCampaign> endingSoon = new ArrayList<>();
+        Map<String, Double> distances = new LinkedHashMap<>();
+        for (RescueCampaign value : active) {
+            if (value.getUrgencyLevel() == UrgencyLevel.CRITICAL) critical.add(value);
+            long remaining = value.getEndDate().getTime() - safeNow.getTime();
+            if (remaining > 0L && remaining <= ENDING_SOON_MILLIS) endingSoon.add(value);
+            if (latitude == null || longitude == null) continue;
+            if (value.getRescueMode() == RescueMode.MOBILE_POINT) {
+                double distance = locationService.distanceToCampaign(latitude, longitude, value, safeNow);
+                if (Double.isFinite(distance)) { mobile.add(value); distances.put(value.getId(), distance); }
+            } else {
+                double distance = locationService.distanceKilometers(latitude, longitude,
+                        value.getLatitude(), value.getLongitude());
+                fixed.add(value); distances.put(value.getId(), distance);
+            }
+        }
+        Comparator<RescueCampaign> nearest = Comparator.comparingDouble(
+                value -> distances.getOrDefault(value.getId(), Double.MAX_VALUE));
+        mobile.sort(nearest); fixed.sort(nearest);
+        endingSoon.sort(Comparator.comparing(RescueCampaign::getEndDate));
+
+        List<Product> valueProducts = new ArrayList<>();
+        if (productSource != null) for (Product value : productSource) {
+            if (value != null && value.isAvailable() && value.calculateDiscountPercent() > 0D) {
+                valueProducts.add(value);
+            }
+        }
+        valueProducts.sort(Comparator.comparingDouble(Product::calculateDiscountPercent).reversed());
+
+        List<Category> categories = new ArrayList<>();
+        if (categorySource != null) for (Category value : categorySource) {
+            if (value != null && value.isActive()) categories.add(value);
+        }
+        categories.sort(Comparator.comparingInt(Category::getDisplayOrder).thenComparing(Category::getName));
+        return new HomeViewState(banners, critical, mobile, fixed, endingSoon, valueProducts,
+                active, categories, distances, locationState, refreshing, message);
+    }
+
+    private static Comparator<RescueCampaign> campaignComparator() {
+        return Comparator.comparingInt(HomeContentBuilder::urgencyRank)
+                .thenComparing(RescueCampaign::getEndDate)
+                .thenComparing(RescueCampaign::getTitle);
+    }
+    private static int urgencyRank(RescueCampaign value) {
+        return value.getUrgencyLevel() == UrgencyLevel.CRITICAL ? 0
+                : value.getUrgencyLevel() == UrgencyLevel.HIGH ? 1 : 2;
+    }
+}

@@ -10,10 +10,12 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.rescuefarm.data.local.dao.CampaignCacheDao;
+import com.rescuefarm.data.local.dao.BannerCacheDao;
 import com.rescuefarm.data.local.dao.CatalogCacheDao;
 import com.rescuefarm.data.local.database.RescueFarmDatabase;
 import com.rescuefarm.data.local.entity.CampaignCacheEntity;
 import com.rescuefarm.data.local.mapper.CampaignCacheMapper;
+import com.rescuefarm.data.local.mapper.BannerCacheMapper;
 import com.rescuefarm.data.local.mapper.CatalogCacheMapper;
 import com.rescuefarm.data.repository.CampaignRepository;
 import com.rescuefarm.domain.enums.BatchStatus;
@@ -23,6 +25,7 @@ import com.rescuefarm.domain.enums.RescueReason;
 import com.rescuefarm.domain.enums.UrgencyLevel;
 import com.rescuefarm.domain.model.ProductBatch;
 import com.rescuefarm.domain.model.RescueCampaign;
+import com.rescuefarm.domain.model.Banner;
 import com.rescuefarm.service.inventory.InventoryService;
 import com.rescuefarm.service.inventory.InventoryVersionPolicy;
 import java.util.ArrayList;
@@ -37,18 +40,21 @@ import java.util.concurrent.ExecutorService;
 
 public class FirebaseCampaignRepository implements CampaignRepository {
     private static final String CAMPAIGNS = "campaigns";
+    private static final String BANNERS = "banners";
     private static final String BATCHES = "productBatches";
     private static final int MAX_BATCHES = 8;
     private final FirebaseFirestore firestore = FirebaseFirestore.getInstance();
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
     private final RescueFarmDatabase database;
     private final CampaignCacheDao campaignDao;
+    private final BannerCacheDao bannerDao;
     private final CatalogCacheDao catalogDao;
     private final ExecutorService cacheExecutor;
     private final InventoryService inventoryService = new InventoryService();
 
     public FirebaseCampaignRepository(RescueFarmDatabase database, ExecutorService cacheExecutor) {
         this.database = database; this.campaignDao = database.campaignCacheDao();
+        this.bannerDao = database.bannerCacheDao();
         this.catalogDao = database.catalogCacheDao(); this.cacheExecutor = cacheExecutor;
     }
 
@@ -58,10 +64,38 @@ public class FirebaseCampaignRepository implements CampaignRepository {
     @Override public LiveData<List<RescueCampaign>> observeSellerCampaigns(String sellerId) {
         return Transformations.map(campaignDao.observeSellerCampaigns(sellerId), CampaignCacheMapper::campaigns);
     }
+    @Override public LiveData<List<Banner>> observeActiveBanners() {
+        return Transformations.map(bannerDao.observeActiveBanners(), BannerCacheMapper::banners);
+    }
 
     @Override public void refreshActiveCampaigns(ActionCallback callback) {
         firestore.collection(CAMPAIGNS).whereEqualTo("status", CampaignStatus.ACTIVE.name()).get()
                 .addOnSuccessListener(snapshot -> cacheCampaigns(snapshot.getDocuments(), true, null, callback))
+                .addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void refreshBanners(ActionCallback callback) {
+        firestore.collection(BANNERS).whereEqualTo("active", true).get()
+                .addOnSuccessListener(snapshot -> {
+                    List<com.rescuefarm.data.local.entity.BannerCacheEntity> entities =
+                            new ArrayList<>();
+                    long now = System.currentTimeMillis();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        Banner banner = mapBanner(document);
+                        if (banner != null) entities.add(BannerCacheMapper.toEntity(banner, now));
+                    }
+                    cacheExecutor.execute(() -> {
+                        try {
+                            database.runInTransaction(() -> {
+                                bannerDao.clearBanners();
+                                bannerDao.replaceBanners(entities);
+                            });
+                            callback.onSuccess();
+                        } catch (RuntimeException error) {
+                            callback.onError(ErrorCode.UNKNOWN, "Không thể cập nhật cache banner.");
+                        }
+                    });
+                })
                 .addOnFailureListener(error -> notifyFailure(error, callback::onError));
     }
 
@@ -273,6 +307,16 @@ public class FirebaseCampaignRepository implements CampaignRepository {
                     value.getString("locationName"),
                     enumValue(CampaignStatus.class, value.getString("status"), CampaignStatus.DRAFT));
         } catch (IllegalArgumentException | IllegalStateException error) { return null; }
+    }
+
+    private Banner mapBanner(DocumentSnapshot value) {
+        try {
+            Long order = value.getLong("displayOrder");
+            return Banner.restore(value.getId(), value.getString("title"),
+                    value.getString("imageUrl"), value.getString("campaignId"),
+                    order == null ? 0 : order.intValue(), date(value, "startDate"),
+                    date(value, "endDate"), Boolean.TRUE.equals(value.getBoolean("active")));
+        } catch (RuntimeException error) { return null; }
     }
 
     private ProductBatch requireBatch(DocumentSnapshot value) {

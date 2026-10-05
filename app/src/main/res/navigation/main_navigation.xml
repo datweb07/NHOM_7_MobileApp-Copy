@@ -55,6 +55,19 @@
             app:destination="@id/productListFragment" />
         <action android:id="@+id/action_guestHomeFragment_to_campaignListFragment"
             app:destination="@id/campaignListFragment" />
+        <action android:id="@+id/action_guestHomeFragment_to_discoveryFragment"
+            app:destination="@id/discoveryFragment" />
+        <action android:id="@+id/action_guestHomeFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
+        <action android:id="@+id/action_guestHomeFragment_to_campaignDetailFragment"
+            app:destination="@id/campaignDetailFragment" />
+    </fragment>
+    <fragment android:id="@+id/discoveryFragment"
+        android:name="com.rescuefarm.ui.home.DiscoveryFragment" android:label="@string/discovery_title">
+        <action android:id="@+id/action_discoveryFragment_to_productDetailFragment"
+            app:destination="@id/productDetailFragment" />
+        <action android:id="@+id/action_discoveryFragment_to_campaignDetailFragment"
+            app:destination="@id/campaignDetailFragment" />
     </fragment>
 
     <fragment

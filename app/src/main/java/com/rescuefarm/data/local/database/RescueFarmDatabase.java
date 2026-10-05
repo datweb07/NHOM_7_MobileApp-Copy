@@ -10,10 +10,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.annotation.NonNull;
 
 import com.rescuefarm.data.local.dao.CampaignCacheDao;
+import com.rescuefarm.data.local.dao.BannerCacheDao;
 import com.rescuefarm.data.local.dao.CatalogCacheDao;
 import com.rescuefarm.data.local.dao.GuestCartDao;
 import com.rescuefarm.data.local.dao.PostCacheDao;
 import com.rescuefarm.data.local.entity.CampaignCacheEntity;
+import com.rescuefarm.data.local.entity.BannerCacheEntity;
 import com.rescuefarm.data.local.entity.CategoryCacheEntity;
 import com.rescuefarm.data.local.entity.GuestCartItemEntity;
 import com.rescuefarm.data.local.entity.PostCacheEntity;
@@ -27,9 +29,10 @@ import com.rescuefarm.data.local.entity.ProductCacheEntity;
                 ProductBatchCacheEntity.class,
                 CampaignCacheEntity.class,
                 PostCacheEntity.class,
-                GuestCartItemEntity.class
+                GuestCartItemEntity.class,
+                BannerCacheEntity.class
         },
-        version = 3,
+        version = 4,
         exportSchema = true
 )
 public abstract class RescueFarmDatabase extends RoomDatabase {
@@ -57,6 +60,11 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
             database.execSQL("ALTER TABLE campaign_cache ADD COLUMN locationName TEXT");
         }
     };
+    private static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS banner_cache (id TEXT NOT NULL, title TEXT, imageUrl TEXT, campaignId TEXT, displayOrder INTEGER NOT NULL, startAtEpochMillis INTEGER NOT NULL, endAtEpochMillis INTEGER NOT NULL, active INTEGER NOT NULL, cachedAtEpochMillis INTEGER NOT NULL, PRIMARY KEY(id))");
+        }
+    };
 
     public static RescueFarmDatabase getInstance(Context context) {
         if (instance == null) {
@@ -66,7 +74,7 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             RescueFarmDatabase.class,
                             DATABASE_NAME
-                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build();
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build();
                 }
             }
         }
@@ -75,6 +83,7 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
 
     public abstract CatalogCacheDao catalogCacheDao();
     public abstract CampaignCacheDao campaignCacheDao();
+    public abstract BannerCacheDao bannerCacheDao();
     public abstract PostCacheDao postCacheDao();
     public abstract GuestCartDao guestCartDao();
 }

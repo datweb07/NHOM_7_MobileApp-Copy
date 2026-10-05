@@ -11,7 +11,7 @@ public final class CampaignRepositoryFactory {
     public static CampaignRepository create(Context context) {
         RescueFarmDatabase database = RescueFarmDatabase.getInstance(context);
         if (!FirebaseConfiguration.isConfigured(context)) {
-            return new OfflineCampaignRepository(database.campaignCacheDao(),
+            return new OfflineCampaignRepository(database.campaignCacheDao(), database.bannerCacheDao(),
                     Executors.newSingleThreadExecutor());
         }
         return new FirebaseCampaignRepository(database, Executors.newSingleThreadExecutor());

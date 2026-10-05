@@ -50,7 +50,7 @@
     <string name="shop_not_updated">Chưa cập nhật tên cửa hàng</string>
     <string name="avatar_url_label">URL ảnh đại diện</string>
     <string name="use_current_location_action">Dùng vị trí hiện tại</string>
-    <string name="coordinates_format">Vĩ độ %.6f • Kinh độ %.6f</string>
+    <string name="coordinates_format">Vĩ độ %1$.6f • Kinh độ %2$.6f</string>
     <string name="save_action">Lưu thay đổi</string>
     <string name="address_list_title">Địa chỉ nhận hàng</string>
     <string name="add_address_action">Thêm địa chỉ</string>
@@ -86,7 +86,7 @@
     <string name="no_products_message">Chưa có sản phẩm trong cache. Hãy kiểm tra mạng và làm mới.</string>
     <string name="product_image_description">Ảnh sản phẩm</string>
     <string name="discount_format">Tiết kiệm %.0f%%</string>
-    <string name="product_stock_format">Còn %.2f trong %d batch có thể bán</string>
+    <string name="product_stock_format">Còn %1$.2f trong %2$d batch có thể bán</string>
     <string name="seller_products_action">Quản lý sản phẩm</string>
     <string name="seller_products_title">Sản phẩm của cửa hàng</string>
     <string name="seller_approval_catalog_notice">Chỉ seller đã được phê duyệt mới có thể tạo hoặc sửa sản phẩm và batch.</string>
@@ -113,7 +113,7 @@
     <string name="initial_quantity_label">Số lượng ban đầu</string>
     <string name="save_batch_action">Lưu batch</string>
     <string name="clear_action">Nhập mới</string>
-    <string name="batch_info_format">Khả dụng %.2f • Giữ %.2f • Đã bán %.2f\n%4$s • version %5$d</string>
+    <string name="batch_info_format">Khả dụng %1$.2f • Giữ %2$.2f • Đã bán %3$.2f\n%4$s • version %5$d</string>
     <string name="campaigns_action">Chiến dịch giải cứu</string>
     <string name="campaigns_title">Chiến dịch đang hoạt động</string>
     <string name="campaign_detail_title">Chi tiết chiến dịch</string>
@@ -136,7 +136,7 @@
     <string name="nearby_mobile_action">Mobile gần tôi</string>
     <string name="all_action">Tất cả</string>
     <string name="no_campaigns">Không có chiến dịch phù hợp trong cache.</string>
-    <string name="campaign_progress_format">Tiến độ %.1f%% • %.2f / %.2f</string>
+    <string name="campaign_progress_format">Tiến độ %1$.1f%% • %2$.2f / %3$.2f</string>
     <string name="campaign_reason_format">%1$s • Mức độ %2$s</string>
     <string name="detail_action">Chi tiết</string>
     <string name="mobile_rescue_action">Mobile</string>
@@ -147,4 +147,9 @@
     <string name="update_mobile_location_action">Cập nhật vị trí hiện tại</string>
     <string name="stop_location_sharing_action">Tắt chia sẻ vị trí</string>
     <string name="location_permission_required">Cần cấp quyền vị trí khi dùng tính năng này.</string>
+    <string name="discovery_search_action">Tìm kiếm &amp; bộ lọc</string>
+    <string name="home_use_location">Dùng vị trí</string>
+    <string name="discovery_title">Khám phá nông sản giải cứu</string>
+    <string name="discovery_keyword">Tên, nguồn gốc, chiến dịch…</string>
+    <string name="apply_filter_action">Áp dụng</string>
 </resources>
