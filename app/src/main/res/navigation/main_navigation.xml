@@ -152,11 +152,15 @@
             app:destination="@id/productEditorFragment" />
         <action android:id="@+id/action_sellerProductListFragment_to_batchManagerFragment"
             app:destination="@id/batchManagerFragment" />
+        <action android:id="@+id/action_sellerProductListFragment_to_promotionEditorFragment"
+            app:destination="@id/promotionEditorFragment" />
     </fragment>
     <fragment android:id="@+id/productEditorFragment"
         android:name="com.rescuefarm.ui.product.ProductEditorFragment" android:label="@string/product_editor_title" />
     <fragment android:id="@+id/batchManagerFragment"
         android:name="com.rescuefarm.ui.product.BatchManagerFragment" android:label="@string/batch_manager_title" />
+    <fragment android:id="@+id/promotionEditorFragment"
+        android:name="com.rescuefarm.ui.product.PromotionEditorFragment" android:label="@string/promotion_editor_title" />
     <fragment android:id="@+id/campaignListFragment"
         android:name="com.rescuefarm.ui.campaign.CampaignListFragment" android:label="@string/campaigns_title">
         <action android:id="@+id/action_campaignListFragment_to_campaignDetailFragment"

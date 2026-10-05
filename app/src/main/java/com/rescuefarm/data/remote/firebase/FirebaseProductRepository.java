@@ -18,9 +18,11 @@ import com.rescuefarm.data.local.mapper.CatalogCacheMapper;
 import com.rescuefarm.data.repository.ProductRepository;
 import com.rescuefarm.domain.enums.BatchStatus;
 import com.rescuefarm.domain.enums.ProductStatus;
+import com.rescuefarm.domain.enums.PromotionType;
 import com.rescuefarm.domain.model.Category;
 import com.rescuefarm.domain.model.Product;
 import com.rescuefarm.domain.model.ProductBatch;
+import com.rescuefarm.domain.model.Promotion;
 import com.rescuefarm.service.inventory.InventoryService;
 import com.rescuefarm.service.inventory.InventoryVersionPolicy;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ public class FirebaseProductRepository implements ProductRepository {
     private static final String CATEGORIES = "categories";
     private static final String PRODUCTS = "products";
     private static final String BATCHES = "productBatches";
+    private static final String PROMOTIONS = "promotions";
     private final FirebaseFirestore firestore = FirebaseFirestore.getInstance();
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
     private final RescueFarmDatabase database;
@@ -259,6 +262,71 @@ public class FirebaseProductRepository implements ProductRepository {
         }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
     }
 
+    @Override public void getPromotion(String productId, PromotionCallback callback) {
+        firestore.collection(PROMOTIONS).document(productId).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (!snapshot.exists()) { callback.onSuccess(null); return; }
+                    Promotion value = mapPromotion(snapshot);
+                    if (value == null) callback.onError(ErrorCode.VALIDATION, "Dữ liệu khuyến mãi không hợp lệ.");
+                    else callback.onSuccess(value);
+                }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void getSellerPromotions(String sellerId, PromotionListCallback callback) {
+        firestore.collection(PROMOTIONS).whereEqualTo("sellerId", sellerId).get()
+                .addOnSuccessListener(snapshot -> {
+                    List<Promotion> values = new ArrayList<>();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        Promotion value = mapPromotion(document);
+                        if (value != null) values.add(value);
+                    }
+                    callback.onSuccess(values);
+                }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void savePromotion(Promotion promotion, PromotionCallback callback) {
+        String sellerId = currentUserId();
+        if (sellerId == null) { callback.onError(ErrorCode.FORBIDDEN, "Vui lòng đăng nhập seller."); return; }
+        Promotion candidate;
+        try {
+            candidate = new Promotion(promotion.getProductId(), sellerId, promotion.getProductId(),
+                    promotion.getType(), promotion.getValue(), promotion.getQuantityDiscountTiers(),
+                    promotion.getStartDate(), promotion.getEndDate(), promotion.isActive());
+        } catch (IllegalArgumentException error) {
+            callback.onError(ErrorCode.VALIDATION, error.getMessage()); return;
+        }
+        DocumentReference productRef = firestore.collection(PRODUCTS).document(candidate.getProductId());
+        DocumentReference promotionRef = firestore.collection(PROMOTIONS).document(candidate.getProductId());
+        firestore.runTransaction(transaction -> {
+            DocumentSnapshot product = transaction.get(productRef);
+            DocumentSnapshot existing = transaction.get(promotionRef);
+            requireOwner(product);
+            if (existing.exists() && !sellerId.equals(existing.getString("sellerId"))) {
+                throw new IllegalStateException("FORBIDDEN");
+            }
+            Map<String, Object> data = promotionMap(candidate);
+            data.put("updatedAt", FieldValue.serverTimestamp());
+            if (!existing.exists()) data.put("createdAt", FieldValue.serverTimestamp());
+            else if (existing.get("createdAt") != null) data.put("createdAt", existing.get("createdAt"));
+            transaction.set(promotionRef, data);
+            return candidate;
+        }).addOnSuccessListener(callback::onSuccess)
+                .addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
+    @Override public void setPromotionActive(String productId, boolean active, ActionCallback callback) {
+        DocumentReference promotionRef = firestore.collection(PROMOTIONS).document(productId);
+        firestore.runTransaction(transaction -> {
+            DocumentSnapshot promotion = transaction.get(promotionRef);
+            if (!promotion.exists()) throw new IllegalStateException("NOT_FOUND");
+            DocumentSnapshot product = transaction.get(firestore.collection(PRODUCTS).document(productId));
+            requireOwner(product);
+            transaction.update(promotionRef, "active", active, "updatedAt", FieldValue.serverTimestamp());
+            return null;
+        }).addOnSuccessListener(unused -> callback.onSuccess())
+                .addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
     private void fallbackProduct(String productId, ProductCallback callback) {
         cacheExecutor.execute(() -> {
             ProductCacheEntity cached = dao.findProduct(productId);
@@ -289,6 +357,25 @@ public class FirebaseProductRepository implements ProductRepository {
     private ProductBatch mapBatch(DocumentSnapshot value) {
         try { return requireBatch(value); }
         catch (IllegalArgumentException | IllegalStateException error) { return null; }
+    }
+
+    private Promotion mapPromotion(DocumentSnapshot value) {
+        try {
+            Map<String, Double> tiers = new HashMap<>();
+            Object raw = value.get("quantityDiscountTiers");
+            if (raw instanceof Map<?, ?>) {
+                for (Map.Entry<?, ?> entry : ((Map<?, ?>) raw).entrySet()) {
+                    if (entry.getKey() instanceof String && entry.getValue() instanceof Number) {
+                        tiers.put((String) entry.getKey(), ((Number) entry.getValue()).doubleValue());
+                    }
+                }
+            }
+            return Promotion.restore(value.getId(), value.getString("sellerId"),
+                    value.getString("productId"), enumValue(PromotionType.class,
+                    value.getString("type"), null), number(value, "value"), tiers,
+                    date(value, "startDate"), date(value, "endDate"),
+                    Boolean.TRUE.equals(value.getBoolean("active")));
+        } catch (IllegalArgumentException error) { return null; }
     }
 
     private ProductBatch requireBatch(DocumentSnapshot value) {
@@ -330,6 +417,15 @@ public class FirebaseProductRepository implements ProductRepository {
         data.put("initialQuantity", value.getInitialQuantity()); data.put("availableQuantity", value.getAvailableQuantity());
         data.put("reservedQuantity", value.getReservedQuantity()); data.put("soldQuantity", value.getSoldQuantity());
         data.put("status", value.getStatus().name()); data.put("inventoryVersion", value.getInventoryVersion()); return data;
+    }
+    private Map<String, Object> promotionMap(Promotion value) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", value.getProductId()); data.put("sellerId", value.getSellerId());
+        data.put("productId", value.getProductId()); data.put("type", value.getType().name());
+        data.put("value", value.getValue());
+        data.put("quantityDiscountTiers", value.getQuantityDiscountTiers());
+        data.put("startDate", value.getStartDate()); data.put("endDate", value.getEndDate());
+        data.put("active", value.isActive()); return data;
     }
 
     private void requireOwner(DocumentSnapshot snapshot) {

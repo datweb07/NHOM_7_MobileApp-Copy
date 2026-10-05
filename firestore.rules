@@ -65,6 +65,25 @@ service cloud.firestore {
           && data.status in ['AVAILABLE', 'RESERVED_PARTIAL', 'SOLD_OUT', 'EXPIRED'];
     }
 
+    function validPromotion(data, promotionId) {
+      return data.id == promotionId
+          && data.productId == promotionId
+          && data.sellerId is string
+          && data.type in ['PERCENT', 'FIXED', 'VOLUME']
+          && data.value is number
+          && data.value >= 0
+          && (data.type == 'VOLUME' || data.value > 0)
+          && (data.type != 'PERCENT' || data.value <= 100)
+          && (data.type != 'VOLUME' || data.value == 0)
+          && data.quantityDiscountTiers is map
+          && data.quantityDiscountTiers.size() <= 10
+          && (data.type != 'VOLUME' || data.quantityDiscountTiers.size() > 0)
+          && data.startDate is timestamp
+          && data.endDate is timestamp
+          && data.startDate < data.endDate
+          && data.active is bool;
+    }
+
     function validInventoryTransition(before, after) {
       return (before.reservedQuantity == 0
               && before.soldQuantity == 0
@@ -302,6 +321,28 @@ service cloud.firestore {
           && resource.data.reservedQuantity == 0
           && resource.data.soldQuantity == 0
           && (resource.data.activeCampaignId == null || resource.data.activeCampaignId == '');
+    }
+
+    match /promotions/{promotionId} {
+      allow get, list: if (resource.data.active == true
+            && resource.data.startDate <= request.time
+            && resource.data.endDate > request.time)
+          || (isSignedIn() && resource.data.sellerId == request.auth.uid)
+          || isAdmin();
+      allow create: if isApprovedSeller(request.auth.uid)
+          && promotionId == request.resource.data.productId
+          && request.resource.data.sellerId == request.auth.uid
+          && ownsProduct(request.resource.data.productId)
+          && validPromotion(request.resource.data, promotionId)
+          && hasNoCredentialFields(request.resource.data);
+      allow update: if isApprovedSeller(request.auth.uid)
+          && resource.data.sellerId == request.auth.uid
+          && request.resource.data.sellerId == resource.data.sellerId
+          && request.resource.data.productId == resource.data.productId
+          && ownsProduct(resource.data.productId)
+          && validPromotion(request.resource.data, promotionId)
+          && hasNoCredentialFields(request.resource.data);
+      allow delete: if false;
     }
 
     match /campaigns/{campaignId} {

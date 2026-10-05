@@ -54,8 +54,10 @@ public class SellerProductListFragment extends Fragment {
         LinearLayout actions = new LinearLayout(requireContext());
         Button edit = new Button(requireContext()); edit.setText(R.string.edit_action); edit.setOnClickListener(v -> navigateEditor(product));
         Button batches = new Button(requireContext()); batches.setText(R.string.manage_batches_action); batches.setOnClickListener(v -> navigateBatches(product));
+        Button promotion = new Button(requireContext()); promotion.setText(R.string.manage_promotion_action); promotion.setOnClickListener(v -> navigatePromotion(product));
         Button hide = new Button(requireContext()); hide.setText(R.string.hide_product_action); hide.setOnClickListener(v -> viewModel.hideProduct(product.getId()));
-        actions.addView(edit); actions.addView(batches); actions.addView(hide); body.addView(title); body.addView(actions); card.addView(body); return card;
+        actions.setOrientation(LinearLayout.VERTICAL);
+        actions.addView(edit); actions.addView(batches); actions.addView(promotion); actions.addView(hide); body.addView(title); body.addView(actions); card.addView(body); return card;
     }
     private void navigateEditor(Product product) {
         Bundle args = productBundle(product);
@@ -64,6 +66,14 @@ public class SellerProductListFragment extends Fragment {
     private void navigateBatches(Product product) {
         Bundle args = new Bundle(); args.putString("productId", product.getId()); args.putString("productName", product.getName());
         Navigation.findNavController(requireView()).navigate(R.id.action_sellerProductListFragment_to_batchManagerFragment, args);
+    }
+    private void navigatePromotion(Product product) {
+        Bundle args = new Bundle(); args.putString("productId", product.getId());
+        args.putString("productName", product.getName());
+        args.putDouble("originalPrice", product.getOriginalPrice());
+        args.putDouble("rescuePrice", product.getRescuePrice());
+        Navigation.findNavController(requireView()).navigate(
+                R.id.action_sellerProductListFragment_to_promotionEditorFragment, args);
     }
     private Bundle productBundle(Product value) {
         Bundle b = new Bundle(); b.putString("id", value.getId()); b.putString("categoryId", value.getCategoryId());

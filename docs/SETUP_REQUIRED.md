@@ -24,3 +24,7 @@ Before image upload is implemented, provide a restricted unsigned upload preset 
 ## Location
 
 Foreground location permissions and `FusedLocationProviderClient` are intentionally deferred until the profile/mobile-rescue phases. Google Maps SDK and background tracking are outside the core scope.
+
+## Promotion pricing
+
+Phase 8 không cần dịch vụ hay dependency mới. Deploy Firestore rules và kiểm tra schema theo `docs/PHASE8_SETUP.md`.

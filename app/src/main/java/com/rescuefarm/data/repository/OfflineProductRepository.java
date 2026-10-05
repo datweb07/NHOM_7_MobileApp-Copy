@@ -7,6 +7,7 @@ import com.rescuefarm.data.local.mapper.CatalogCacheMapper;
 import com.rescuefarm.domain.model.Category;
 import com.rescuefarm.domain.model.Product;
 import com.rescuefarm.domain.model.ProductBatch;
+import com.rescuefarm.domain.model.Promotion;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -53,6 +54,18 @@ public class OfflineProductRepository implements ProductRepository {
     @Override public void mutateStock(String batchId, long expectedVersion, StockMutation mutation,
             double quantity, BatchCallback callback) {
         callback.onError(ErrorCode.NOT_CONFIGURED, MESSAGE);
+    }
+    @Override public void getPromotion(String productId, PromotionCallback callback) {
+        callback.onSuccess(null);
+    }
+    @Override public void getSellerPromotions(String sellerId, PromotionListCallback callback) {
+        callback.onError(ErrorCode.NOT_CONFIGURED, MESSAGE);
+    }
+    @Override public void savePromotion(Promotion promotion, PromotionCallback callback) {
+        callback.onError(ErrorCode.NOT_CONFIGURED, MESSAGE);
+    }
+    @Override public void setPromotionActive(String productId, boolean active, ActionCallback callback) {
+        unavailable(callback);
     }
     private void unavailable(ActionCallback callback) {
         callback.onError(ErrorCode.NOT_CONFIGURED, MESSAGE);

@@ -170,4 +170,17 @@
     <string name="post_campaign_hint">Campaign ID liên kết (không bắt buộc)</string>
     <string name="post_images_hint">URL ảnh, mỗi dòng hoặc phân cách dấu phẩy</string>
     <string name="post_products_hint">Product ID liên kết, mỗi dòng hoặc phân cách dấu phẩy</string>
+    <string name="manage_promotion_action">Khuyến mãi &amp; giá sỉ</string>
+    <string name="promotion_editor_title">Quản lý khuyến mãi</string>
+    <string name="promotion_single_source_notice">Giá luôn được tính theo: giá gốc → giá giải cứu → khuyến mãi → giảm theo số lượng.</string>
+    <string name="promotion_type_label">Loại khuyến mãi</string>
+    <string name="promotion_value_hint">Giá trị (% hoặc số tiền; VOLUME nhập 0)</string>
+    <string name="promotion_tiers_hint">Mỗi dòng: số_lượng=phần_trăm (ví dụ 5=3)</string>
+    <string name="promotion_active_label">Đang bật</string>
+    <string name="save_promotion_action">Lưu khuyến mãi</string>
+    <string name="pricing_quantity_hint">Số lượng</string>
+    <string name="recalculate_price_action">Tính giá</string>
+    <string name="invalid_pricing_quantity">Số lượng phải là số dương.</string>
+    <string name="price_breakdown_format">Giá gốc: %1$s\nGiá giải cứu: %2$s\nGiảm promotion: %3$s\nGiảm số lượng: %4$.2f%%\nĐơn giá cuối: %5$s\nThành tiền: %6$s</string>
+    <string name="promotion_preview_title">Xem trước giá (số lượng 1)</string>
 </resources>

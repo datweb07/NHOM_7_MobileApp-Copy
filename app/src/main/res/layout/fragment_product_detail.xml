@@ -14,6 +14,21 @@
             android:textColor="@color/rescue_primary" android:textStyle="bold" />
         <TextView android:id="@+id/productDiscount" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_xs" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="@dimen/space_md">
+            <EditText android:id="@+id/pricingQuantityInput" android:layout_width="0dp"
+                android:layout_height="@dimen/touch_target_min" android:layout_weight="1"
+                android:hint="@string/pricing_quantity_hint" android:inputType="numberDecimal"
+                android:text="1" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/recalculatePriceButton"
+                android:layout_width="wrap_content" android:layout_height="@dimen/touch_target_min"
+                android:text="@string/recalculate_price_action" />
+        </LinearLayout>
+        <TextView android:id="@+id/priceBreakdownText" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:padding="@dimen/space_md" android:background="@color/rescue_primary_container"
+            android:textColor="@color/rescue_on_primary_container" />
         <TextView android:id="@+id/productDetailOrigin" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm" />
         <TextView android:id="@+id/productStock" android:layout_width="match_parent"

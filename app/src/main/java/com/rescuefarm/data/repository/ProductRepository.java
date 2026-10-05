@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData;
 import com.rescuefarm.domain.model.Category;
 import com.rescuefarm.domain.model.Product;
 import com.rescuefarm.domain.model.ProductBatch;
+import com.rescuefarm.domain.model.Promotion;
+import java.util.Date;
 import java.util.List;
 
 public interface ProductRepository {
@@ -22,6 +24,14 @@ public interface ProductRepository {
         void onSuccess(ProductBatch batch);
         void onError(ErrorCode error, String message);
     }
+    interface PromotionCallback {
+        void onSuccess(Promotion promotion);
+        void onError(ErrorCode error, String message);
+    }
+    interface PromotionListCallback {
+        void onSuccess(List<Promotion> promotions);
+        void onError(ErrorCode error, String message);
+    }
 
     LiveData<List<Category>> observeCategories();
     LiveData<List<Product>> observeProducts();
@@ -37,5 +47,17 @@ public interface ProductRepository {
     void deleteBatch(String batchId, long expectedVersion, ActionCallback callback);
     void mutateStock(String batchId, long expectedVersion, StockMutation mutation,
             double quantity, BatchCallback callback);
+    default void getPromotion(String productId, PromotionCallback callback) {
+        callback.onSuccess(null);
+    }
+    default void getSellerPromotions(String sellerId, PromotionListCallback callback) {
+        callback.onSuccess(new java.util.ArrayList<>());
+    }
+    default void savePromotion(Promotion promotion, PromotionCallback callback) {
+        callback.onError(ErrorCode.NOT_CONFIGURED, "Promotion repository is not configured.");
+    }
+    default void setPromotionActive(String productId, boolean active, ActionCallback callback) {
+        callback.onError(ErrorCode.NOT_CONFIGURED, "Promotion repository is not configured.");
+    }
     default void close() { }
 }
