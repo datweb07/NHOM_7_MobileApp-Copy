@@ -101,7 +101,9 @@ public class GuestHomeFragment extends Fragment {
     }
 
     private void render(HomeViewState state) {
-        message.setText(state.getMessage()); progress.setVisibility(state.isRefreshing() ? View.VISIBLE : View.GONE);
+        String prefix = state.getDataFreshness() == HomeViewState.DataFreshness.OFFLINE ? "OFFLINE • "
+                : state.getDataFreshness() == HomeViewState.DataFreshness.STALE ? "CACHE CŨ • " : "";
+        message.setText(prefix + state.getMessage()); progress.setVisibility(state.isRefreshing() ? View.VISIBLE : View.GONE);
         renderBanners(state.getBanners());
         renderCampaigns(criticalSection, state.getCritical(), state, "Chưa có chiến dịch CRITICAL.");
         String nearbyEmpty = state.getLocationState() == HomeViewState.LocationState.AVAILABLE

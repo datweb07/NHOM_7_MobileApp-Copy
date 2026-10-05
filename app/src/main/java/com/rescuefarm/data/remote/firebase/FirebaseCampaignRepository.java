@@ -28,6 +28,7 @@ import com.rescuefarm.domain.model.RescueCampaign;
 import com.rescuefarm.domain.model.Banner;
 import com.rescuefarm.service.inventory.InventoryService;
 import com.rescuefarm.service.inventory.InventoryVersionPolicy;
+import com.rescuefarm.service.network.NetworkStatusProvider;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -50,12 +51,15 @@ public class FirebaseCampaignRepository implements CampaignRepository {
     private final BannerCacheDao bannerDao;
     private final CatalogCacheDao catalogDao;
     private final ExecutorService cacheExecutor;
+    private final NetworkStatusProvider network;
     private final InventoryService inventoryService = new InventoryService();
 
-    public FirebaseCampaignRepository(RescueFarmDatabase database, ExecutorService cacheExecutor) {
+    public FirebaseCampaignRepository(RescueFarmDatabase database, ExecutorService cacheExecutor,
+            NetworkStatusProvider network) {
         this.database = database; this.campaignDao = database.campaignCacheDao();
         this.bannerDao = database.bannerCacheDao();
         this.catalogDao = database.catalogCacheDao(); this.cacheExecutor = cacheExecutor;
+        this.network = network;
     }
 
     @Override public LiveData<List<RescueCampaign>> observeActiveCampaigns() {
@@ -69,12 +73,14 @@ public class FirebaseCampaignRepository implements CampaignRepository {
     }
 
     @Override public void refreshActiveCampaigns(ActionCallback callback) {
+        if (!online(callback, "Đang offline; campaign tiếp tục dùng Room cache.")) return;
         firestore.collection(CAMPAIGNS).whereEqualTo("status", CampaignStatus.ACTIVE.name()).get()
                 .addOnSuccessListener(snapshot -> cacheCampaigns(snapshot.getDocuments(), true, null, callback))
                 .addOnFailureListener(error -> notifyFailure(error, callback::onError));
     }
 
     @Override public void refreshBanners(ActionCallback callback) {
+        if (!online(callback, "Đang offline; banner tiếp tục dùng Room cache.")) return;
         firestore.collection(BANNERS).whereEqualTo("active", true).get()
                 .addOnSuccessListener(snapshot -> {
                     List<com.rescuefarm.data.local.entity.BannerCacheEntity> entities =
@@ -100,6 +106,7 @@ public class FirebaseCampaignRepository implements CampaignRepository {
     }
 
     @Override public void refreshSellerCampaigns(String sellerId, ActionCallback callback) {
+        if (!online(callback, "Đang offline; campaign seller tiếp tục dùng Room cache.")) return;
         firestore.collection(CAMPAIGNS).whereEqualTo("sellerId", sellerId).get()
                 .addOnSuccessListener(snapshot -> cacheCampaigns(snapshot.getDocuments(), false, sellerId, callback))
                 .addOnFailureListener(error -> notifyFailure(error, callback::onError));
@@ -138,6 +145,7 @@ public class FirebaseCampaignRepository implements CampaignRepository {
 
     @Override public void saveCampaign(RescueCampaign source, boolean submit,
             CampaignCallback callback) {
+        if (!online(callback, "Không thể lưu campaign khi offline; thay đổi không được xếp hàng.")) return;
         String sellerId = currentUserId();
         if (sellerId == null) { callback.onError(ErrorCode.FORBIDDEN, "Vui lòng đăng nhập seller."); return; }
         DocumentReference reference = clean(source.getId()).isEmpty()
@@ -214,6 +222,7 @@ public class FirebaseCampaignRepository implements CampaignRepository {
 
     @Override public void updateMobileLocation(String campaignId, double latitude, double longitude,
             boolean sharingEnabled, CampaignCallback callback) {
+        if (!online(callback, "Cập nhật điểm mobile cần kết nối mạng và không được xếp hàng offline.")) return;
         DocumentReference reference = firestore.collection(CAMPAIGNS).document(campaignId);
         firestore.runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(reference);
@@ -239,6 +248,7 @@ public class FirebaseCampaignRepository implements CampaignRepository {
     @Override public void mutateReservation(String campaignId, String batchId,
             long expectedInventoryVersion, ReservationMutation mutation, double quantity,
             CampaignCallback callback) {
+        if (!online(callback, "Reservation campaign cần kết nối mạng và không được xếp hàng offline.")) return;
         DocumentReference campaignRef = firestore.collection(CAMPAIGNS).document(campaignId);
         DocumentReference batchRef = firestore.collection(BATCHES).document(batchId);
         firestore.runTransaction(transaction -> {
@@ -445,4 +455,11 @@ public class FirebaseCampaignRepository implements CampaignRepository {
         }
     }
     @Override public void close() { cacheExecutor.shutdownNow(); }
+
+    private boolean online(Object callback, String message) {
+        if (network.isOnline()) return true;
+        if (callback instanceof ActionCallback) ((ActionCallback) callback).onError(ErrorCode.NETWORK, message);
+        else if (callback instanceof CampaignCallback) ((CampaignCallback) callback).onError(ErrorCode.NETWORK, message);
+        return false;
+    }
 }

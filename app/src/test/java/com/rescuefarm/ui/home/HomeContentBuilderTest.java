@@ -38,6 +38,14 @@ public class HomeContentBuilderTest {
         assertEquals(2, state.getNearbyFixed().size());
     }
 
+    @Test public void cachedContentIsMarkedStaleUntilRefreshSucceeds() {
+        HomeViewState state = new HomeContentBuilder().build(Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                null, null, new Date(), HomeViewState.LocationState.PERMISSION_REQUIRED,
+                false, "cache");
+        assertEquals(HomeViewState.DataFreshness.STALE, state.getDataFreshness());
+    }
+
     private RescueCampaign campaign(String id, UrgencyLevel urgency, RescueMode mode,
             Date now, Date locationAt, boolean sharing) {
         return RescueCampaign.restore(id, "seller", "Chiến dịch " + id, "Mô tả",

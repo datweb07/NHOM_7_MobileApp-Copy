@@ -25,6 +25,7 @@ import com.rescuefarm.domain.model.ProductBatch;
 import com.rescuefarm.domain.model.Promotion;
 import com.rescuefarm.service.inventory.InventoryService;
 import com.rescuefarm.service.inventory.InventoryVersionPolicy;
+import com.rescuefarm.service.network.NetworkStatusProvider;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -42,10 +43,13 @@ public class FirebaseProductRepository implements ProductRepository {
     private final RescueFarmDatabase database;
     private final CatalogCacheDao dao;
     private final ExecutorService cacheExecutor;
+    private final NetworkStatusProvider network;
     private final InventoryService inventoryService = new InventoryService();
 
-    public FirebaseProductRepository(RescueFarmDatabase database, ExecutorService cacheExecutor) {
+    public FirebaseProductRepository(RescueFarmDatabase database, ExecutorService cacheExecutor,
+            NetworkStatusProvider network) {
         this.database = database; this.dao = database.catalogCacheDao(); this.cacheExecutor = cacheExecutor;
+        this.network = network;
     }
 
     @Override public LiveData<List<Category>> observeCategories() {
@@ -62,6 +66,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void refreshCatalog(ActionCallback callback) {
+        if (!online(callback, "Đang offline; catalog tiếp tục dùng Room cache.")) return;
         firestore.collection(CATEGORIES).whereEqualTo("active", true).get()
                 .addOnSuccessListener(categorySnapshot -> firestore.collection(PRODUCTS)
                         .whereEqualTo("status", ProductStatus.ACTIVE.name()).get()
@@ -89,6 +94,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void refreshSellerProducts(String sellerId, ActionCallback callback) {
+        if (!online(callback, "Đang offline; sản phẩm seller tiếp tục dùng Room cache.")) return;
         firestore.collection(PRODUCTS).whereEqualTo("sellerId", sellerId).get()
                 .addOnSuccessListener(snapshot -> {
                     List<ProductCacheEntity> products = new ArrayList<>(); long now = System.currentTimeMillis();
@@ -106,6 +112,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void refreshBatches(String productId, ActionCallback callback) {
+        if (!online(callback, "Đang offline; batch tiếp tục dùng Room cache.")) return;
         firestore.collection(BATCHES).whereEqualTo("productId", productId).get()
                 .addOnSuccessListener(snapshot -> {
                     List<ProductBatchCacheEntity> batches = new ArrayList<>(); long now = System.currentTimeMillis();
@@ -135,6 +142,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void saveProduct(Product product, ProductCallback callback) {
+        if (!online(callback, "Không thể lưu sản phẩm khi offline; thay đổi không được xếp hàng.")) return;
         String sellerId = currentUserId();
         if (sellerId == null) { callback.onError(ErrorCode.FORBIDDEN, "Vui lòng đăng nhập seller."); return; }
         DocumentReference reference = clean(product.getId()).isEmpty()
@@ -170,6 +178,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void hideProduct(String productId, ActionCallback callback) {
+        if (!online(callback, "Không thể ẩn sản phẩm khi offline; thay đổi không được xếp hàng.")) return;
         DocumentReference reference = firestore.collection(PRODUCTS).document(productId);
         firestore.runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(reference);
@@ -183,6 +192,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void saveBatch(ProductBatch batch, long expectedVersion, BatchCallback callback) {
+        if (!online(callback, "Inventory mutation cần kết nối mạng; batch không được xếp hàng offline.")) return;
         DocumentReference productRef = firestore.collection(PRODUCTS).document(batch.getProductId());
         DocumentReference batchRef = clean(batch.getId()).isEmpty()
                 ? firestore.collection(BATCHES).document()
@@ -219,6 +229,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void deleteBatch(String batchId, long expectedVersion, ActionCallback callback) {
+        if (!online(callback, "Inventory mutation cần kết nối mạng; batch không được xếp hàng offline.")) return;
         DocumentReference batchRef = firestore.collection(BATCHES).document(batchId);
         firestore.runTransaction(transaction -> {
             DocumentSnapshot batchSnapshot = transaction.get(batchRef);
@@ -240,6 +251,7 @@ public class FirebaseProductRepository implements ProductRepository {
 
     @Override public void mutateStock(String batchId, long expectedVersion, StockMutation mutation,
             double quantity, BatchCallback callback) {
+        if (!online(callback, "Inventory mutation cần kết nối mạng và không được xếp hàng offline.")) return;
         DocumentReference batchRef = firestore.collection(BATCHES).document(batchId);
         firestore.runTransaction(transaction -> {
             DocumentSnapshot batchSnapshot = transaction.get(batchRef);
@@ -285,6 +297,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void savePromotion(Promotion promotion, PromotionCallback callback) {
+        if (!online(callback, "Không thể lưu promotion khi offline; thay đổi không được xếp hàng.")) return;
         String sellerId = currentUserId();
         if (sellerId == null) { callback.onError(ErrorCode.FORBIDDEN, "Vui lòng đăng nhập seller."); return; }
         Promotion candidate;
@@ -315,6 +328,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void setPromotionActive(String productId, boolean active, ActionCallback callback) {
+        if (!online(callback, "Không thể đổi promotion khi offline; thay đổi không được xếp hàng.")) return;
         DocumentReference promotionRef = firestore.collection(PROMOTIONS).document(productId);
         firestore.runTransaction(transaction -> {
             DocumentSnapshot promotion = transaction.get(promotionRef);
@@ -328,6 +342,7 @@ public class FirebaseProductRepository implements ProductRepository {
     }
 
     @Override public void getCartQuote(String productId, String batchId, CartQuoteCallback callback) {
+        if (!online(callback, "Cần kết nối mạng để revalidate giá và tồn kho trước checkout.")) return;
         firestore.collection(PRODUCTS).document(productId).get().addOnSuccessListener(productSnapshot -> {
             Product product = productSnapshot.exists() ? mapProduct(productSnapshot) : null;
             if (product == null) { callback.onError(ErrorCode.NOT_FOUND, "Sản phẩm không còn khả dụng."); return; }
@@ -499,4 +514,14 @@ public class FirebaseProductRepository implements ProductRepository {
     }
     private interface ErrorConsumer { void accept(ErrorCode error, String message); }
     @Override public void close() { cacheExecutor.shutdownNow(); }
+
+    private boolean online(Object callback, String message) {
+        if (network.isOnline()) return true;
+        if (callback instanceof ActionCallback) ((ActionCallback) callback).onError(ErrorCode.NETWORK, message);
+        else if (callback instanceof ProductCallback) ((ProductCallback) callback).onError(ErrorCode.NETWORK, message);
+        else if (callback instanceof BatchCallback) ((BatchCallback) callback).onError(ErrorCode.NETWORK, message);
+        else if (callback instanceof PromotionCallback) ((PromotionCallback) callback).onError(ErrorCode.NETWORK, message);
+        else if (callback instanceof CartQuoteCallback) ((CartQuoteCallback) callback).onError(ErrorCode.NETWORK, message);
+        return false;
+    }
 }

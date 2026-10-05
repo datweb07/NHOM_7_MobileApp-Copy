@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.play.services.location)
     implementation(libs.glide)
+    implementation(libs.work.runtime)
     annotationProcessor(libs.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.arch.core.testing)

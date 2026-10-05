@@ -5,6 +5,7 @@ import com.rescuefarm.data.local.database.RescueFarmDatabase;
 import com.rescuefarm.data.remote.firebase.FirebaseConfiguration;
 import com.rescuefarm.data.remote.firebase.FirebaseProductRepository;
 import java.util.concurrent.Executors;
+import com.rescuefarm.service.network.AndroidNetworkStatusProvider;
 
 public final class ProductRepositoryFactory {
     private ProductRepositoryFactory() { }
@@ -15,6 +16,7 @@ public final class ProductRepositoryFactory {
             return new OfflineProductRepository(
                     database.catalogCacheDao(), Executors.newSingleThreadExecutor());
         }
-        return new FirebaseProductRepository(database, Executors.newSingleThreadExecutor());
+        return new FirebaseProductRepository(database, Executors.newSingleThreadExecutor(),
+                new AndroidNetworkStatusProvider(context));
     }
 }

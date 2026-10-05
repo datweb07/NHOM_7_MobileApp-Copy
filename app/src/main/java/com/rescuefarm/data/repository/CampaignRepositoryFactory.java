@@ -5,6 +5,7 @@ import com.rescuefarm.data.local.database.RescueFarmDatabase;
 import com.rescuefarm.data.remote.firebase.FirebaseCampaignRepository;
 import com.rescuefarm.data.remote.firebase.FirebaseConfiguration;
 import java.util.concurrent.Executors;
+import com.rescuefarm.service.network.AndroidNetworkStatusProvider;
 
 public final class CampaignRepositoryFactory {
     private CampaignRepositoryFactory() { }
@@ -14,6 +15,7 @@ public final class CampaignRepositoryFactory {
             return new OfflineCampaignRepository(database.campaignCacheDao(), database.bannerCacheDao(),
                     Executors.newSingleThreadExecutor());
         }
-        return new FirebaseCampaignRepository(database, Executors.newSingleThreadExecutor());
+        return new FirebaseCampaignRepository(database, Executors.newSingleThreadExecutor(),
+                new AndroidNetworkStatusProvider(context));
     }
 }

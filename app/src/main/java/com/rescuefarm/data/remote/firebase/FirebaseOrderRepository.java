@@ -1,7 +1,7 @@
 package com.rescuefarm.data.remote.firebase;
 
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
@@ -10,6 +10,10 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.rescuefarm.data.repository.OrderRepository;
+import com.rescuefarm.data.local.dao.OrderCacheDao;
+import com.rescuefarm.data.local.database.RescueFarmDatabase;
+import com.rescuefarm.data.local.entity.OrderCacheEntity;
+import com.rescuefarm.data.local.mapper.OrderCacheMapper;
 import com.rescuefarm.domain.enums.BatchStatus;
 import com.rescuefarm.domain.enums.CampaignStatus;
 import com.rescuefarm.domain.enums.FulfillmentType;
@@ -42,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 public class FirebaseOrderRepository implements OrderRepository {
     private static final String ORDERS="orders", ITEMS="items", PRODUCTS="products",
@@ -49,12 +54,17 @@ public class FirebaseOrderRepository implements OrderRepository {
             PAYMENTS="payments", SHIPMENTS="shipments";
     private final FirebaseFirestore db=FirebaseFirestore.getInstance();
     private final FirebaseAuth auth=FirebaseAuth.getInstance(); private final NetworkStatusProvider network;
-    private final MutableLiveData<List<Order>> orders=new MutableLiveData<>(new ArrayList<>());
+    private final RescueFarmDatabase database; private final OrderCacheDao orderDao;
+    private final ExecutorService cacheExecutor;
     private final PricingService pricing=new PricingService(); private final InventoryService inventory=new InventoryService();
     private final OrderLifecycleService lifecycle=new OrderLifecycleService();
-    public FirebaseOrderRepository(NetworkStatusProvider network){this.network=network;}
-    @Override public LiveData<List<Order>> observeOrders(String ownerId){return orders;}
-    @Override public LiveData<List<Order>> observeSellerOrders(String sellerId){return orders;}
+    public FirebaseOrderRepository(RescueFarmDatabase database, ExecutorService cacheExecutor,
+            NetworkStatusProvider network){this.database=database;this.orderDao=database.orderCacheDao();
+        this.cacheExecutor=cacheExecutor;this.network=network;}
+    @Override public LiveData<List<Order>> observeOrders(String ownerId){return Transformations.map(
+            orderDao.observeOwnerOrders(ownerId),OrderCacheMapper::orders);}
+    @Override public LiveData<List<Order>> observeSellerOrders(String sellerId){return Transformations.map(
+            orderDao.observeSellerOrders(sellerId),OrderCacheMapper::orders);}
 
     @Override public void checkout(CheckoutRequest request, OrderCallback callback) {
         if(!network.isOnline()){callback.onError(ErrorCode.NETWORK,"Checkout cần kết nối mạng.");return;}
@@ -145,7 +155,7 @@ public class FirebaseOrderRepository implements OrderRepository {
                     number(campaignDoc,"reservedQuantity")+campaignReserve,"lastReservationOrderId",request.requestId,
                     "lastReservationQuantity",campaignReserve,"updatedAt",FieldValue.serverTimestamp());
             return new Result(order,false);
-        }).addOnSuccessListener(r->callback.onSuccess(r.order,r.replay))
+        }).addOnSuccessListener(r->{cache(r.order);callback.onSuccess(r.order,r.replay);})
                 .addOnFailureListener(e->failure(e,callback));
     }
 
@@ -153,19 +163,22 @@ public class FirebaseOrderRepository implements OrderRepository {
         if(!network.isOnline()){callback.onError(ErrorCode.NETWORK,"Không thể tải đơn khi offline.");return;}
         db.collection(ORDERS).whereEqualTo("ownerId",ownerId).get().addOnSuccessListener(s->{
             List<Order> values=new ArrayList<>();for(DocumentSnapshot d:s.getDocuments())values.add(mapOrder(d,new ArrayList<>()));
-            orders.setValue(values);callback.onSuccess();}).addOnFailureListener(e->failure(e,callback));
+            cacheExecutor.execute(()->{database.runInTransaction(()->{orderDao.clearOwnerOrders(ownerId);
+                orderDao.replaceOrders(toEntities(values));});callback.onSuccess();});}).addOnFailureListener(e->failure(e,callback));
     }
     @Override public void refreshSellerOrders(String sellerId,ActionCallback callback){
         if(!network.isOnline()){callback.onError(ErrorCode.NETWORK,"Không thể tải đơn seller khi offline.");return;}
         db.collection(ORDERS).whereEqualTo("sellerId",sellerId).get().addOnSuccessListener(s->{
             List<Order> values=new ArrayList<>();for(DocumentSnapshot d:s.getDocuments())values.add(mapOrder(d,new ArrayList<>()));
-            orders.setValue(values);callback.onSuccess();}).addOnFailureListener(e->failure(e,callback));
+            cacheExecutor.execute(()->{database.runInTransaction(()->{orderDao.clearSellerOrders(sellerId);
+                orderDao.replaceOrders(toEntities(values));});callback.onSuccess();});}).addOnFailureListener(e->failure(e,callback));
     }
     @Override public void findGuestOrder(String code,String phone,OrderCallback callback){
         if(!network.isOnline()){callback.onError(ErrorCode.NETWORK,"Tra cứu đơn cần kết nối mạng.");return;}
         db.collection(ORDERS).whereEqualTo("orderCode",clean(code).toUpperCase()).whereEqualTo("receiverPhone",clean(phone)).limit(1).get()
                 .addOnSuccessListener(s->{if(s.isEmpty())callback.onError(ErrorCode.NOT_FOUND,"Không tìm thấy đơn.");
-                    else callback.onSuccess(mapOrder(s.getDocuments().get(0),new ArrayList<>()),false);})
+                    else {Order value=mapOrder(s.getDocuments().get(0),new ArrayList<>());cache(value);
+                        callback.onSuccess(value,false);}})
                 .addOnFailureListener(e->failure(e,callback));
     }
 
@@ -274,7 +287,7 @@ public class FirebaseOrderRepository implements OrderRepository {
             db.collection(PAYMENTS).document(orderId).get().addOnSuccessListener(paymentDoc->{
                 if(!paymentDoc.exists()){callback.onError(ErrorCode.CONFLICT,"Đơn chưa có payment record.");return;}
                 Order order=mapOrder(orderDoc,new ArrayList<>());Payment payment=mapPayment(paymentDoc);
-                if(!lifecycle.requiresShipment(order.getFulfillmentType())){callback.onSuccess(order,payment,null,replay);return;}
+                cache(order);if(!lifecycle.requiresShipment(order.getFulfillmentType())){callback.onSuccess(order,payment,null,replay);return;}
                 db.collection(SHIPMENTS).document(orderId).get().addOnSuccessListener(shipmentDoc->{
                     if(!shipmentDoc.exists()){callback.onError(ErrorCode.CONFLICT,"Đơn giao hàng chưa có shipment record.");return;}
                     callback.onSuccess(order,payment,mapShipment(shipmentDoc),replay);
@@ -309,9 +322,14 @@ public class FirebaseOrderRepository implements OrderRepository {
     private Shipment mapShipment(DocumentSnapshot d){return Shipment.restore(d.getId(),d.getString("orderId"),d.getString("carrierName"),d.getString("trackingCode"),enumValue(ShipmentStatus.class,d.getString("status"),ShipmentStatus.PENDING),number(d,"distanceKm"),number(d,"shippingFee"));}
     private Map<String,Double> reservationMap(Object raw){Map<String,Double> result=new HashMap<>();if(raw instanceof Map<?,?>)for(Map.Entry<?,?> e:((Map<?,?>)raw).entrySet())if(e.getKey() instanceof String&&e.getValue() instanceof Number){double quantity=((Number)e.getValue()).doubleValue();if(quantity>0D)result.put((String)e.getKey(),quantity);}if(result.isEmpty())throw new IllegalStateException("RESERVATIONS_MISSING");return result;}
     private Order mapOrder(DocumentSnapshot d,List<OrderItem> items){return Order.restore(d.getId(),enumValue(OrderOwnerType.class,d.getString("ownerType"),OrderOwnerType.GUEST),d.getString("ownerId"),d.getString("orderCode"),d.getString("sellerId"),d.getString("campaignId"),enumValue(FulfillmentType.class,d.getString("fulfillmentType"),FulfillmentType.PICKUP),d.getString("receiverName"),d.getString("receiverPhone"),d.getString("receiverAddress"),number(d,"receiverLatitude"),number(d,"receiverLongitude"),number(d,"subtotal"),number(d,"quantityDiscount"),number(d,"shippingFee"),number(d,"totalAmount"),enumValue(PaymentMethod.class,d.getString("paymentMethod"),PaymentMethod.COD),enumValue(PaymentStatus.class,d.getString("paymentStatus"),PaymentStatus.UNPAID),enumValue(OrderStatus.class,d.getString("status"),OrderStatus.PENDING),d.getString("note"),date(d,"createdAt"),date(d,"updatedAt"),items);}
+    private void cache(Order value){if(value!=null)cacheExecutor.execute(()->orderDao.replaceOrder(
+            OrderCacheMapper.toEntity(value,System.currentTimeMillis())));}
+    private List<OrderCacheEntity> toEntities(List<Order> values){List<OrderCacheEntity> result=new ArrayList<>();
+        long now=System.currentTimeMillis();for(Order value:values)result.add(OrderCacheMapper.toEntity(value,now));return result;}
     private void failure(Exception e,OrderCallback c){String m=e.getMessage();if(m!=null&&(m.contains("Insufficient")||m.contains("unavailable")||m.contains("BATCH")||m.contains("PRODUCT"))){c.onError(ErrorCode.INSUFFICIENT_STOCK,"Tồn kho đã thay đổi hoặc batch không còn bán.");return;}if("CAMPAIGN_CONFLICT".equals(m)){c.onError(ErrorCode.CAMPAIGN_CONFLICT,"Campaign không còn đủ số lượng hoặc không hợp lệ.");return;}if("IDEMPOTENCY_CONFLICT".equals(m)){c.onError(ErrorCode.CONFLICT,"Idempotency key đã được dùng cho request khác.");return;}if(e instanceof FirebaseFirestoreException&&((FirebaseFirestoreException)e).getCode()==FirebaseFirestoreException.Code.PERMISSION_DENIED){c.onError(ErrorCode.FORBIDDEN,"Firestore Rules từ chối checkout.");return;}c.onError(ErrorCode.UNKNOWN,"Không thể tạo đơn; transaction đã rollback.");}
     private void failure(Exception e,ActionCallback c){if(e instanceof FirebaseFirestoreException&&((FirebaseFirestoreException)e).getCode()==FirebaseFirestoreException.Code.PERMISSION_DENIED)c.onError(ErrorCode.FORBIDDEN,"Không có quyền đọc đơn.");else c.onError(ErrorCode.UNKNOWN,"Không thể tải đơn.");}
     private void failure(Exception e,LifecycleCallback c){String m=e.getMessage()==null?"":e.getMessage();if(m.contains("ORDER_NOT_FOUND")){c.onError(ErrorCode.NOT_FOUND,"Không tìm thấy đơn.");return;}if(m.contains("ILLEGAL_ORDER_TRANSITION")){c.onError(ErrorCode.VALIDATION,"Chuyển trạng thái đơn không hợp lệ.");return;}if(m.contains("BANK_TRANSFER_NOT_CONFIRMED")){c.onError(ErrorCode.CONFLICT,"Cần xác nhận chuyển khoản thủ công trước khi hoàn tất đơn.");return;}if(m.contains("PAID_ORDER_REQUIRES_REFUND")){c.onError(ErrorCode.CONFLICT,"Đơn đã thanh toán cần quy trình hoàn tiền, không thể hủy trực tiếp.");return;}if(m.contains("FINALIZED")||m.contains("reserved")||m.contains("CAMPAIGN")||m.contains("RESERVATIONS")){c.onError(ErrorCode.CONFLICT,"Tồn kho hoặc campaign đã thay đổi; transaction đã rollback.");return;}if(e instanceof FirebaseFirestoreException&&((FirebaseFirestoreException)e).getCode()==FirebaseFirestoreException.Code.PERMISSION_DENIED){c.onError(ErrorCode.FORBIDDEN,"Bạn không có quyền cập nhật đơn này.");return;}c.onError(ErrorCode.UNKNOWN,"Không thể cập nhật đơn; transaction đã rollback.");}
     private static double number(DocumentSnapshot d,String f){Double v=d.getDouble(f);return v==null?0D:v;}private static long longValue(DocumentSnapshot d,String f){Long v=d.getLong(f);return v==null?0L:v;}private static Date date(DocumentSnapshot d,String f){Timestamp v=d.getTimestamp(f);return v==null?null:v.toDate();}private static String clean(String v){return v==null?"":v.trim();}private static <T extends Enum<T>>T enumValue(Class<T> t,String v,T fallback){try{return Enum.valueOf(t,v==null?"":v);}catch(Exception e){return fallback;}}
     private static final class Result{final Order order;final boolean replay;Result(Order o,boolean r){order=o;replay=r;}}
+    @Override public void close(){cacheExecutor.shutdownNow();}
 }

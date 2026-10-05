@@ -14,6 +14,8 @@ import com.rescuefarm.data.local.dao.BannerCacheDao;
 import com.rescuefarm.data.local.dao.CatalogCacheDao;
 import com.rescuefarm.data.local.dao.GuestCartDao;
 import com.rescuefarm.data.local.dao.PostCacheDao;
+import com.rescuefarm.data.local.dao.CacheMetadataDao;
+import com.rescuefarm.data.local.dao.OrderCacheDao;
 import com.rescuefarm.data.local.entity.CampaignCacheEntity;
 import com.rescuefarm.data.local.entity.BannerCacheEntity;
 import com.rescuefarm.data.local.entity.CategoryCacheEntity;
@@ -21,6 +23,8 @@ import com.rescuefarm.data.local.entity.GuestCartItemEntity;
 import com.rescuefarm.data.local.entity.PostCacheEntity;
 import com.rescuefarm.data.local.entity.ProductBatchCacheEntity;
 import com.rescuefarm.data.local.entity.ProductCacheEntity;
+import com.rescuefarm.data.local.entity.CacheMetadataEntity;
+import com.rescuefarm.data.local.entity.OrderCacheEntity;
 
 @Database(
         entities = {
@@ -30,9 +34,11 @@ import com.rescuefarm.data.local.entity.ProductCacheEntity;
                 CampaignCacheEntity.class,
                 PostCacheEntity.class,
                 GuestCartItemEntity.class,
-                BannerCacheEntity.class
+                BannerCacheEntity.class,
+                CacheMetadataEntity.class,
+                OrderCacheEntity.class
         },
-        version = 5,
+        version = 6,
         exportSchema = true
 )
 public abstract class RescueFarmDatabase extends RoomDatabase {
@@ -72,6 +78,11 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
             database.execSQL("ALTER TABLE post_cache ADD COLUMN viewCount INTEGER NOT NULL DEFAULT 0");
         }
     };
+    public static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) {
+            for (String statement : CacheMigrationContract.version6Statements()) database.execSQL(statement);
+        }
+    };
 
     public static RescueFarmDatabase getInstance(Context context) {
         if (instance == null) {
@@ -82,7 +93,7 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
                             RescueFarmDatabase.class,
                             DATABASE_NAME
                     ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-                            MIGRATION_4_5).build();
+                            MIGRATION_4_5, MIGRATION_5_6).build();
                 }
             }
         }
@@ -94,4 +105,6 @@ public abstract class RescueFarmDatabase extends RoomDatabase {
     public abstract BannerCacheDao bannerCacheDao();
     public abstract PostCacheDao postCacheDao();
     public abstract GuestCartDao guestCartDao();
+    public abstract CacheMetadataDao cacheMetadataDao();
+    public abstract OrderCacheDao orderCacheDao();
 }

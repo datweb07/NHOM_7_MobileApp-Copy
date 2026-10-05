@@ -13,6 +13,7 @@ import java.util.Map;
 
 public final class HomeViewState {
     public enum LocationState { PERMISSION_REQUIRED, LOADING, AVAILABLE, UNAVAILABLE, DENIED }
+    public enum DataFreshness { FRESH, STALE, OFFLINE }
     public enum Section {
         BANNERS, CRITICAL, NEARBY_MOBILE, NEARBY_FIXED, ENDING_SOON,
         VALUE_PRODUCTS, ACTIVE_CAMPAIGNS, CATEGORIES, RESCUE_FEED
@@ -34,6 +35,7 @@ public final class HomeViewState {
     private final LocationState locationState;
     private final boolean refreshing;
     private final String message;
+    private final DataFreshness dataFreshness;
 
     public HomeViewState(List<Banner> banners, List<RescueCampaign> critical,
             List<RescueCampaign> nearbyMobile, List<RescueCampaign> nearbyFixed,
@@ -41,6 +43,17 @@ public final class HomeViewState {
             List<RescueCampaign> activeCampaigns, List<Category> categories,
             Map<String, Double> distances, LocationState locationState, boolean refreshing,
             String message) {
+        this(banners, critical, nearbyMobile, nearbyFixed, endingSoon, valueProducts,
+                activeCampaigns, categories, distances, locationState, refreshing, message,
+                DataFreshness.STALE);
+    }
+
+    public HomeViewState(List<Banner> banners, List<RescueCampaign> critical,
+            List<RescueCampaign> nearbyMobile, List<RescueCampaign> nearbyFixed,
+            List<RescueCampaign> endingSoon, List<Product> valueProducts,
+            List<RescueCampaign> activeCampaigns, List<Category> categories,
+            Map<String, Double> distances, LocationState locationState, boolean refreshing,
+            String message, DataFreshness dataFreshness) {
         this.banners = copy(banners); this.critical = copy(critical);
         this.nearbyMobile = copy(nearbyMobile); this.nearbyFixed = copy(nearbyFixed);
         this.endingSoon = copy(endingSoon); this.valueProducts = copy(valueProducts);
@@ -48,6 +61,7 @@ public final class HomeViewState {
         this.distances = Collections.unmodifiableMap(new LinkedHashMap<>(distances));
         this.locationState = locationState; this.refreshing = refreshing;
         this.message = message == null ? "" : message;
+        this.dataFreshness = dataFreshness == null ? DataFreshness.STALE : dataFreshness;
     }
     private static <T> List<T> copy(List<T> values) {
         return Collections.unmodifiableList(new ArrayList<>(values));
@@ -66,4 +80,5 @@ public final class HomeViewState {
     public LocationState getLocationState() { return locationState; }
     public boolean isRefreshing() { return refreshing; }
     public String getMessage() { return message; }
+    public DataFreshness getDataFreshness() { return dataFreshness; }
 }

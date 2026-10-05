@@ -38,6 +38,7 @@ public class HomeViewModel extends ViewModel {
     private int pendingRefreshes;
     private boolean refreshHadError;
     private String message = "Đang hiển thị dữ liệu đã lưu trên thiết bị.";
+    private HomeViewState.DataFreshness freshness = HomeViewState.DataFreshness.STALE;
 
     public HomeViewModel(ProductRepository productRepository, CampaignRepository campaignRepository,
             AuthRepository authRepository, LocationProvider locationProvider) {
@@ -110,18 +111,20 @@ public class HomeViewModel extends ViewModel {
     }
     private synchronized void finishRefresh(String error) {
         if (error != null && !error.trim().isEmpty()) {
-            refreshHadError = true; message = error + " Dữ liệu cache vẫn được giữ.";
+            refreshHadError = true; freshness = HomeViewState.DataFreshness.OFFLINE;
+            message = error + " Dữ liệu cache vẫn được giữ và chỉ dùng để tham khảo.";
         }
         pendingRefreshes = Math.max(0, pendingRefreshes - 1);
         if (pendingRefreshes == 0) {
             refreshing = false;
-            if (!refreshHadError) message = "Đã cập nhật Home.";
+            if (!refreshHadError) { freshness = HomeViewState.DataFreshness.FRESH;
+                message = "Đã cập nhật Home."; }
         }
         publish();
     }
     private void publish() {
         homeState.postValue(contentBuilder.build(banners, products, campaigns, categories,
-                latitude, longitude, new Date(), locationState, refreshing, message));
+                latitude, longitude, new Date(), locationState, refreshing, message, freshness));
         publishSearch();
     }
     private void publishSearch() {
