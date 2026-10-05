@@ -36,7 +36,7 @@
             android:layout_height="@dimen/touch_target_min" android:text="@string/notifications_title" />
         <com.google.android.material.button.MaterialButton android:id="@+id/adminReportsButton"
             style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
-            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_reports_title" />
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_dashboard_title" />
         <ProgressBar android:id="@+id/profileProgress" android:layout_width="wrap_content"
             android:layout_height="wrap_content" android:layout_gravity="center_horizontal"
             android:layout_marginTop="@dimen/space_md" android:visibility="gone" />

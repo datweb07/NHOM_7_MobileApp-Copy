@@ -25,6 +25,14 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
     }
 
+    function hasAdminModerationFields(data) {
+      return data.moderatedBy == request.auth.uid
+          && data.moderatedAt == request.time
+          && data.moderationReason is string
+          && data.moderationReason.size() <= 500
+          && data.updatedAt == request.time;
+    }
+
     function ownsProduct(productId) {
       return isSignedIn()
           && get(/databases/$(database)/documents/products/$(productId)).data.sellerId == request.auth.uid;
@@ -381,10 +389,10 @@ service cloud.firestore {
           && hasValidSelfRegistrationRole(request.resource.data)
           && hasNoCredentialFields(request.resource.data);
 
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
 
-      allow update: if isOwner(userId)
+      allow update: if (isOwner(userId)
           && request.resource.data.id == resource.data.id
           && request.resource.data.role == resource.data.role
           && request.resource.data.status == resource.data.status
@@ -394,7 +402,30 @@ service cloud.firestore {
               || !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                 'representativeName', 'shopName', 'shopDescription', 'shopAvatarUrl', 'address'
               ]))
-          && hasNoCredentialFields(request.resource.data);
+          && hasNoCredentialFields(request.resource.data))
+        || (isAdmin()
+          && resource.data.role != 'ADMIN'
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.role == resource.data.role
+          && ((request.resource.data.status == resource.data.status
+                && resource.data.role == 'SELLER'
+                && request.resource.data.sellerStatus in ['APPROVED', 'REJECTED']
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                  'sellerStatus', 'moderatedBy', 'moderatedAt',
+                  'moderationReason', 'updatedAt'
+                ]))
+            || (((resource.data.status in ['ACTIVE', 'INACTIVE']
+                    && request.resource.data.status == 'BLOCKED')
+                  || (resource.data.status == 'BLOCKED'
+                    && request.resource.data.status == 'ACTIVE'))
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                  'status', 'moderatedBy', 'moderatedAt',
+                  'moderationReason', 'updatedAt'
+                ])))
+          && (request.resource.data.status != 'BLOCKED'
+            || request.resource.data.moderationReason.size() >= 3)
+          && hasAdminModerationFields(request.resource.data)
+          && hasNoCredentialFields(request.resource.data));
 
       allow delete: if false;
 
@@ -423,30 +454,53 @@ service cloud.firestore {
     }
 
     match /sellerApplications/{sellerId} {
-      allow get: if hasRole(sellerId, 'SELLER');
-      allow list: if false;
+      allow get: if hasRole(sellerId, 'SELLER') || isAdmin();
+      allow list: if isAdmin();
       allow create: if hasRole(sellerId, 'SELLER')
           && request.resource.data.id == sellerId
           && request.resource.data.sellerId == sellerId
           && request.resource.data.status == 'PENDING'
           && hasNoCredentialFields(request.resource.data);
-      allow update: if hasRole(sellerId, 'SELLER')
+      allow update: if (hasRole(sellerId, 'SELLER')
           && resource.data.status == 'REJECTED'
           && request.resource.data.id == resource.data.id
           && request.resource.data.sellerId == resource.data.sellerId
           && request.resource.data.status == 'PENDING'
-          && hasNoCredentialFields(request.resource.data);
+          && hasNoCredentialFields(request.resource.data))
+        || (isAdmin()
+          && resource.data.status == 'PENDING'
+          && request.resource.data.status in ['APPROVED', 'REJECTED']
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.sellerId == resource.data.sellerId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'rejectionReason', 'moderatedBy', 'moderatedAt',
+            'moderationReason', 'updatedAt'
+          ])
+          && getAfter(/databases/$(database)/documents/users/$(sellerId)).data.sellerStatus
+              == request.resource.data.status
+          && (request.resource.data.status != 'REJECTED'
+            || request.resource.data.moderationReason.size() >= 3)
+          && hasAdminModerationFields(request.resource.data)
+          && hasNoCredentialFields(request.resource.data));
       allow delete: if false;
     }
 
     match /categories/{categoryId} {
-      allow get, list: if resource.data.active == true;
-      allow write: if false;
+      allow get, list: if resource.data.active == true || isAdmin();
+      allow update: if isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'active', 'moderatedBy', 'moderatedAt', 'moderationReason', 'updatedAt'
+          ])
+          && request.resource.data.active is bool
+          && (request.resource.data.active == true
+            || request.resource.data.moderationReason.size() >= 3)
+          && hasAdminModerationFields(request.resource.data);
+      allow create, delete: if false;
     }
 
     match /products/{productId} {
       allow get, list: if resource.data.status == 'ACTIVE'
-          || (isSignedIn() && resource.data.sellerId == request.auth.uid);
+          || (isSignedIn() && resource.data.sellerId == request.auth.uid) || isAdmin();
       allow create: if isApprovedSeller(request.auth.uid)
           && request.resource.data.id == productId
           && request.resource.data.sellerId == request.auth.uid
@@ -454,14 +508,29 @@ service cloud.firestore {
           && request.resource.data.reviewCount == 0
           && validProduct(request.resource.data)
           && hasNoCredentialFields(request.resource.data);
-      allow update: if isApprovedSeller(request.auth.uid)
+      allow update: if (isApprovedSeller(request.auth.uid)
           && resource.data.sellerId == request.auth.uid
+          && resource.data.status != 'HIDDEN'
           && request.resource.data.id == resource.data.id
           && request.resource.data.sellerId == resource.data.sellerId
           && request.resource.data.averageRating == resource.data.averageRating
           && request.resource.data.reviewCount == resource.data.reviewCount
           && validProduct(request.resource.data)
-          && hasNoCredentialFields(request.resource.data);
+          && hasNoCredentialFields(request.resource.data))
+        || (isAdmin()
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.sellerId == resource.data.sellerId
+          && ((resource.data.status in ['ACTIVE', 'INACTIVE', 'SOLD_OUT']
+                && request.resource.data.status == 'HIDDEN')
+            || (resource.data.status == 'HIDDEN' && request.resource.data.status == 'INACTIVE'))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'moderatedBy', 'moderatedAt', 'moderationReason', 'updatedAt'
+          ])
+          && validProduct(request.resource.data)
+          && (request.resource.data.status != 'HIDDEN'
+            || request.resource.data.moderationReason.size() >= 3)
+          && hasAdminModerationFields(request.resource.data)
+          && hasNoCredentialFields(request.resource.data));
       allow delete: if false;
     }
 
@@ -654,11 +723,16 @@ service cloud.firestore {
             || (checkoutCampaignReservation(resource.data, request.resource.data))
             || (lifecycleCampaignMutation(resource.data, request.resource.data))
             || (isAdmin()
-              && resource.data.status == 'PENDING_APPROVAL'
-              && request.resource.data.status in ['ACTIVE', 'REJECTED']
+              && ((resource.data.status == 'PENDING_APPROVAL'
+                    && request.resource.data.status in ['ACTIVE', 'REJECTED'])
+                || (resource.data.status == 'ACTIVE'
+                    && request.resource.data.status == 'STOPPED'))
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-                'status', 'urgencyLevel', 'updatedAt'
-              ]))
+                'status', 'moderatedBy', 'moderatedAt', 'moderationReason', 'updatedAt'
+              ])
+              && (!(request.resource.data.status in ['REJECTED', 'STOPPED'])
+                || request.resource.data.moderationReason.size() >= 3)
+              && hasAdminModerationFields(request.resource.data))
           )
           && request.resource.data.id == resource.data.id
           && request.resource.data.sellerId == resource.data.sellerId
@@ -668,8 +742,16 @@ service cloud.firestore {
     }
 
     match /banners/{bannerId} {
-      allow get, list: if resource.data.active == true;
-      allow create, update, delete: if false;
+      allow get, list: if resource.data.active == true || isAdmin();
+      allow update: if isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'active', 'moderatedBy', 'moderatedAt', 'moderationReason', 'updatedAt'
+          ])
+          && request.resource.data.active is bool
+          && (request.resource.data.active == true
+            || request.resource.data.moderationReason.size() >= 3)
+          && hasAdminModerationFields(request.resource.data);
+      allow create, delete: if false;
     }
 
     match /posts/{postId} {
@@ -693,9 +775,18 @@ service cloud.firestore {
               && request.resource.data.createdAt == resource.data.createdAt
               && request.resource.data.viewCount == resource.data.viewCount)
             || (isAdmin()
-              && resource.data.status == 'PENDING_APPROVAL'
-              && request.resource.data.status in ['PUBLISHED', 'REJECTED']
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))
+              && ((resource.data.status == 'PENDING_APPROVAL'
+                    && request.resource.data.status in ['PUBLISHED', 'REJECTED'])
+                || (resource.data.status == 'PUBLISHED'
+                    && request.resource.data.status == 'HIDDEN')
+                || (resource.data.status == 'HIDDEN'
+                    && request.resource.data.status == 'PUBLISHED'))
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'status', 'moderatedBy', 'moderatedAt', 'moderationReason', 'updatedAt'
+              ])
+              && (!(request.resource.data.status in ['REJECTED', 'HIDDEN'])
+                || request.resource.data.moderationReason.size() >= 3)
+              && hasAdminModerationFields(request.resource.data))
           )
           && validPost(request.resource.data)
           && hasNoCredentialFields(request.resource.data);
@@ -767,7 +858,7 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'DELIVERED'
           && exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId)/items/$(request.resource.data.orderItemId))
           && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)/items/$(request.resource.data.orderItemId)).data.productId == request.resource.data.productId;
-      allow update: if isSignedIn() && resource.data.customerId == request.auth.uid
+      allow update: if (isSignedIn() && resource.data.customerId == request.auth.uid
           && request.resource.data.id == resource.data.id
           && request.resource.data.customerId == resource.data.customerId
           && request.resource.data.productId == resource.data.productId
@@ -781,8 +872,21 @@ service cloud.firestore {
           && request.resource.data.imageUrls is list && request.resource.data.imageUrls.size() <= 5
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'rating', 'content', 'imageUrls', 'updatedAt'
-          ]);
-      allow delete: if (isSignedIn() && resource.data.customerId == request.auth.uid) || isAdmin();
+          ]))
+        || (isAdmin()
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.customerId == resource.data.customerId
+          && ((resource.data.status == 'PENDING'
+                && request.resource.data.status in ['PUBLISHED', 'REJECTED'])
+            || (resource.data.status == 'PUBLISHED' && request.resource.data.status == 'HIDDEN')
+            || (resource.data.status == 'HIDDEN' && request.resource.data.status == 'PUBLISHED'))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'moderatedBy', 'moderatedAt', 'moderationReason', 'updatedAt'
+          ])
+          && (!(request.resource.data.status in ['REJECTED', 'HIDDEN'])
+            || request.resource.data.moderationReason.size() >= 3)
+          && hasAdminModerationFields(request.resource.data));
+      allow delete: if isSignedIn() && resource.data.customerId == request.auth.uid;
     }
 
     match /reports/{reportId} {
@@ -825,6 +929,24 @@ service cloud.firestore {
           && resource.data.isRead == false && request.resource.data.isRead == true
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
       allow delete: if false;
+    }
+
+    match /adminAuditLogs/{auditId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin()
+          && request.resource.data.adminId == request.auth.uid
+          && request.resource.data.resourceType in [
+            'SELLER_APPLICATIONS', 'USERS', 'POSTS', 'PRODUCTS', 'CAMPAIGNS',
+            'CATEGORIES', 'BANNERS', 'REVIEWS', 'REPORTS', 'ORDERS'
+          ]
+          && request.resource.data.resourceId is string
+          && request.resource.data.resourceId.size() > 0
+          && request.resource.data.fromState is string
+          && request.resource.data.toState is string
+          && request.resource.data.reason is string
+          && request.resource.data.reason.size() <= 500
+          && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
     }
 
     match /{document=**} {

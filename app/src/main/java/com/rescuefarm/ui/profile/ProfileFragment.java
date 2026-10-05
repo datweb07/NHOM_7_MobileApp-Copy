@@ -47,7 +47,7 @@ public class ProfileFragment extends Fragment {
         view.findViewById(R.id.notificationsButton).setOnClickListener(
                 Navigation.createNavigateOnClickListener(R.id.action_profileFragment_to_notificationFragment));
         adminReportsButton.setOnClickListener(Navigation.createNavigateOnClickListener(
-                R.id.action_profileFragment_to_adminReportFragment));
+                R.id.action_profileFragment_to_adminDashboardFragment));
         viewModel = new ViewModelProvider(this, new ProfileViewModelFactory(requireContext()))
                 .get(ProfileViewModel.class);
         viewModel.getState().observe(getViewLifecycleOwner(), value -> render(value));
@@ -71,6 +71,7 @@ public class ProfileFragment extends Fragment {
             Seller seller = (Seller) user;
             statusView.setText(seller.canSell()
                     ? R.string.seller_approved_message : R.string.seller_pending_message);
-        } else statusView.setText(R.string.customer_profile_message);
+        } else statusView.setText(user.getRole() == UserRole.ADMIN
+                ? R.string.admin_access_message : R.string.customer_profile_message);
     }
 }

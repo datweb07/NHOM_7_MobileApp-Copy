@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/rescue_background" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_lg">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/admin_dashboard_title"
+            android:textAppearance="@style/TextAppearance.RescueFarm.Display" />
+        <ProgressBar android:id="@+id/adminDashboardProgress" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_gravity="center_horizontal" />
+        <TextView android:id="@+id/adminDashboardMessage" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <TextView android:id="@+id/adminDashboardStats" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:padding="@dimen/space_md"
+            android:background="@color/rescue_primary_container" />
+        <Button android:id="@+id/refreshAdminDashboardButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_refresh_action" />
+        <Button android:id="@+id/adminSellersButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_sellers_title" />
+        <Button android:id="@+id/adminUsersButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_users_title" />
+        <Button android:id="@+id/adminPostsButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_posts_title" />
+        <Button android:id="@+id/adminProductsButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_products_title" />
+        <Button android:id="@+id/adminCampaignsButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_campaigns_title" />
+        <Button android:id="@+id/adminCategoriesButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_categories_title" />
+        <Button android:id="@+id/adminBannersButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_banners_title" />
+        <Button android:id="@+id/adminReviewsButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_reviews_title" />
+        <Button android:id="@+id/adminReportsButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_reports_title" />
+        <Button android:id="@+id/adminOrdersButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_orders_title" />
+        <Button android:id="@+id/adminAnalyticsButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_analytics_title" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -119,7 +119,7 @@
             app:destination="@id/sellerProfileFragment" />
         <action android:id="@+id/action_profileFragment_to_favoriteFragment" app:destination="@id/favoriteFragment" />
         <action android:id="@+id/action_profileFragment_to_notificationFragment" app:destination="@id/notificationFragment" />
-        <action android:id="@+id/action_profileFragment_to_adminReportFragment" app:destination="@id/adminReportFragment" />
+        <action android:id="@+id/action_profileFragment_to_adminDashboardFragment" app:destination="@id/adminDashboardFragment" />
     </fragment>
     <fragment android:id="@+id/editProfileFragment"
         android:name="com.rescuefarm.ui.profile.EditProfileFragment" android:label="@string/edit_profile_title" />
@@ -238,4 +238,15 @@
     <fragment android:id="@+id/reportFragment" android:name="com.rescuefarm.ui.engagement.ReportFragment" android:label="@string/report_action" />
     <fragment android:id="@+id/notificationFragment" android:name="com.rescuefarm.ui.engagement.NotificationFragment" android:label="@string/notifications_title"><deepLink app:uri="rescuefarm://notifications" /></fragment>
     <fragment android:id="@+id/adminReportFragment" android:name="com.rescuefarm.ui.engagement.AdminReportFragment" android:label="@string/admin_reports_title"><deepLink app:uri="rescuefarm://reports/{reportId}" /></fragment>
+    <fragment android:id="@+id/adminDashboardFragment"
+        android:name="com.rescuefarm.ui.admin.AdminDashboardFragment"
+        android:label="@string/admin_dashboard_title">
+        <action android:id="@+id/action_adminDashboardFragment_to_adminResourceFragment"
+            app:destination="@id/adminResourceFragment" />
+    </fragment>
+    <fragment android:id="@+id/adminResourceFragment"
+        android:name="com.rescuefarm.ui.admin.AdminResourceFragment"
+        android:label="@string/admin_dashboard_title">
+        <argument android:name="section" app:argType="string" android:defaultValue="SELLER_APPLICATIONS" />
+    </fragment>
 </navigation>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/rescue_background" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_lg">
+        <TextView android:id="@+id/adminResourceTitle" android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.RescueFarm.Display" />
+        <EditText android:id="@+id/adminModerationReason" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_md"
+            android:hint="@string/admin_reason_hint" android:maxLength="500"
+            android:inputType="textCapSentences|textMultiLine" />
+        <Button android:id="@+id/refreshAdminResourceButton" android:layout_width="match_parent"
+            android:layout_height="@dimen/touch_target_min" android:text="@string/admin_refresh_action" />
+        <ProgressBar android:id="@+id/adminResourceProgress" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_gravity="center_horizontal" />
+        <TextView android:id="@+id/adminResourceMessage" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <LinearLayout android:id="@+id/adminResourceContainer" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="vertical" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
