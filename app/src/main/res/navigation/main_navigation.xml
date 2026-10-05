@@ -137,6 +137,8 @@
             app:destination="@id/sellerCampaignListFragment" />
         <action android:id="@+id/action_sellerProfileFragment_to_sellerPostListFragment"
             app:destination="@id/sellerPostListFragment" />
+        <action android:id="@+id/action_sellerProfileFragment_to_sellerOrderListFragment"
+            app:destination="@id/sellerOrderListFragment" />
     </fragment>
     <fragment android:id="@+id/sellerApplicationFragment"
         android:name="com.rescuefarm.ui.profile.SellerApplicationFragment"
@@ -159,7 +161,11 @@
         android:label="@string/checkout_title"><action android:id="@+id/action_checkoutFragment_to_orderConfirmationFragment"
         app:destination="@id/orderConfirmationFragment" /></fragment>
     <fragment android:id="@+id/orderConfirmationFragment" android:name="com.rescuefarm.ui.checkout.OrderConfirmationFragment"
-        android:label="@string/order_confirmation_title" />
+        android:label="@string/order_confirmation_title"><action android:id="@+id/action_orderConfirmationFragment_to_orderDetailFragment" app:destination="@id/orderDetailFragment" /></fragment>
+    <fragment android:id="@+id/orderDetailFragment" android:name="com.rescuefarm.ui.order.OrderDetailFragment"
+        android:label="@string/order_detail_title" />
+    <fragment android:id="@+id/sellerOrderListFragment" android:name="com.rescuefarm.ui.order.SellerOrderListFragment"
+        android:label="@string/seller_orders_title"><action android:id="@+id/action_sellerOrderListFragment_to_orderDetailFragment" app:destination="@id/orderDetailFragment" /></fragment>
     <fragment android:id="@+id/sellerProductListFragment"
         android:name="com.rescuefarm.ui.product.SellerProductListFragment" android:label="@string/seller_products_title">
         <action android:id="@+id/action_sellerProductListFragment_to_productEditorFragment"

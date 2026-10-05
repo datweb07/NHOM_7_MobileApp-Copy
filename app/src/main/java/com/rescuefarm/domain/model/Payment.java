@@ -16,6 +16,28 @@ public class Payment {
 
     public Payment() { status = PaymentStatus.UNPAID; }
 
+    public static Payment create(String orderId, PaymentMethod method, double amount) {
+        if (orderId == null || orderId.trim().isEmpty() || method == null
+                || !Double.isFinite(amount) || amount < 0D) {
+            throw new IllegalArgumentException("Payment data is invalid");
+        }
+        Payment value = new Payment();
+        value.id = orderId.trim(); value.orderId = orderId.trim(); value.method = method;
+        value.amount = amount;
+        value.status = method == PaymentMethod.BANK_TRANSFER
+                ? PaymentStatus.PENDING : PaymentStatus.UNPAID;
+        return value;
+    }
+
+    public static Payment restore(String id, String orderId, PaymentMethod method,
+            PaymentStatus status, double amount, String referenceCode, Date paidAt) {
+        Payment value = create(orderId, method, amount);
+        value.id = id == null || id.trim().isEmpty() ? value.orderId : id.trim();
+        value.status = status == null ? value.status : status;
+        value.referenceCode = referenceCode == null ? "" : referenceCode.trim();
+        value.paidAt = copy(paidAt); return value;
+    }
+
     public void markPending() { status = PaymentStatus.PENDING; }
 
     public void markPaid(Date paymentTime) {
@@ -23,7 +45,11 @@ public class Payment {
             throw new IllegalStateException("Only an unpaid or pending payment can be marked paid");
         }
         status = PaymentStatus.PAID;
-        paidAt = paymentTime;
+        paidAt = copy(paymentTime == null ? new Date() : paymentTime);
+    }
+
+    public void setReferenceCode(String value) {
+        referenceCode = value == null ? "" : value.trim();
     }
 
     public void markFailed() {
@@ -37,5 +63,6 @@ public class Payment {
     public PaymentStatus getStatus() { return status; }
     public double getAmount() { return amount; }
     public String getReferenceCode() { return referenceCode; }
-    public Date getPaidAt() { return paidAt; }
+    public Date getPaidAt() { return copy(paidAt); }
+    private static Date copy(Date value) { return value == null ? null : new Date(value.getTime()); }
 }

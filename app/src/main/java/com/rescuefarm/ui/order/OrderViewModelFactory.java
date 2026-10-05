@@ -1,0 +1,3 @@
+package com.rescuefarm.ui.order;
+import android.content.Context;import androidx.annotation.NonNull;import androidx.lifecycle.ViewModel;import androidx.lifecycle.ViewModelProvider;import com.rescuefarm.data.repository.OrderRepositoryFactory;
+public class OrderViewModelFactory implements ViewModelProvider.Factory{private final Context context;public OrderViewModelFactory(Context c){context=c.getApplicationContext();}@NonNull @Override public <T extends ViewModel>T create(@NonNull Class<T> c){if(c.isAssignableFrom(OrderViewModel.class))return (T)new OrderViewModel(OrderRepositoryFactory.create(context));throw new IllegalArgumentException("Unknown ViewModel");}}

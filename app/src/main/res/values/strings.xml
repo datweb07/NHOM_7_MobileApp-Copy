@@ -206,4 +206,21 @@
     <string name="order_confirmation_title">Xác nhận đơn hàng</string><string name="guest_tracking_title">Tra cứu bằng mã đơn + số điện thoại</string><string name="order_code_hint">Mã đơn RF-…</string><string name="track_order_action">Tra cứu đơn</string>
     <string name="order_created_format">Đơn %1$s đã tạo • trạng thái %2$s. PENDING chỉ giữ hàng, chưa tính rescued.</string>
     <string name="order_tracking_format">Đơn %1$s\nTrạng thái: %2$s\nThanh toán: %3$s\nTổng: %4$.0f ₫</string>
+    <string name="open_order_detail_action">Thanh toán &amp; trạng thái giao nhận</string>
+    <string name="order_detail_title">Thanh toán &amp; giao nhận</string>
+    <string name="order_detail_format">Đơn %1$s\nTrạng thái đơn: %2$s\nNhận hàng: %3$s\nPhương thức: %4$s\nThanh toán: %5$s\nShipment: %6$s\nTổng: %7$s</string>
+    <string name="shipment_not_required">Không tạo shipment (nhận tại điểm)</string>
+    <string name="update_order_status_action">Cập nhật trạng thái hợp lệ</string>
+    <string name="bank_reference_hint">Mã tham chiếu / biên nhận chuyển khoản</string>
+    <string name="confirm_bank_transfer_action">Seller xác nhận đã nhận chuyển khoản</string>
+    <string name="bank_transfer_manual_instruction">Chuyển khoản được xác nhận thủ công bởi seller. Nội dung đối soát: %1$s. Ứng dụng không tự giả lập xác minh ngân hàng.</string>
+    <string name="cash_onsite_instruction">Thanh toán tiền mặt tại điểm giải cứu; chỉ ghi nhận PAID khi đơn hoàn tất.</string>
+    <string name="cod_instruction">Thanh toán COD khi nhận hàng; chỉ ghi nhận PAID khi DELIVERED.</string>
+    <string name="order_id_missing">Thiếu Order ID.</string>
+    <string name="track_before_open_detail">Hãy tra cứu đơn trước khi mở chi tiết.</string>
+    <string name="seller_orders_action">Đơn hàng &amp; giao nhận</string>
+    <string name="seller_orders_title">Đơn của cửa hàng</string>
+    <string name="refresh_orders_action">Tải lại đơn</string>
+    <string name="seller_orders_empty">Chưa có đơn hàng.</string>
+    <string name="seller_order_row_format">%1$s • %2$s • Thanh toán %3$s</string>
 </resources>

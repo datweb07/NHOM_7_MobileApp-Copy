@@ -41,6 +41,9 @@ public class SellerProfileFragment extends Fragment {
         view.findViewById(R.id.openSellerPostsButton).setOnClickListener(
                 Navigation.createNavigateOnClickListener(
                         R.id.action_sellerProfileFragment_to_sellerPostListFragment));
+        view.findViewById(R.id.openSellerOrdersButton).setOnClickListener(
+                Navigation.createNavigateOnClickListener(
+                        R.id.action_sellerProfileFragment_to_sellerOrderListFragment));
         view.findViewById(R.id.saveSellerProfileButton).setOnClickListener(v ->
                 viewModel.updateSellerProfile(text(representativeInput), text(shopNameInput),
                         text(descriptionInput), text(avatarInput), text(addressInput)));
