@@ -3,6 +3,7 @@ package com.rescuefarm.ui.home;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.rescuefarm.data.repository.AuthRepository;
 import com.rescuefarm.data.repository.CampaignRepository;
@@ -22,6 +23,7 @@ public class HomeViewModel extends ViewModel {
     private final AuthRepository authRepository;
     private final LocationProvider locationProvider;
     private final HomeContentBuilder contentBuilder = new HomeContentBuilder();
+    private final SavedStateHandle savedState;
     private final DiscoveryEngine discoveryEngine = new DiscoveryEngine();
     private final MediatorLiveData<HomeViewState> homeState = new MediatorLiveData<>();
     private final MutableLiveData<List<DiscoveryResult>> searchResults =
@@ -42,8 +44,17 @@ public class HomeViewModel extends ViewModel {
 
     public HomeViewModel(ProductRepository productRepository, CampaignRepository campaignRepository,
             AuthRepository authRepository, LocationProvider locationProvider) {
+        this(productRepository, campaignRepository, authRepository, locationProvider,
+                new SavedStateHandle());
+    }
+
+    public HomeViewModel(ProductRepository productRepository, CampaignRepository campaignRepository,
+            AuthRepository authRepository, LocationProvider locationProvider,
+            SavedStateHandle savedState) {
         this.productRepository = productRepository; this.campaignRepository = campaignRepository;
         this.authRepository = authRepository; this.locationProvider = locationProvider;
+        this.savedState = savedState;
+        this.query = DiscoveryQueryState.restore(savedState);
         homeState.addSource(productRepository.observeProducts(), values -> {
             products = safe(values); publish();
         });
@@ -62,9 +73,11 @@ public class HomeViewModel extends ViewModel {
     public LiveData<HomeViewState> getHomeState() { return homeState; }
     public LiveData<List<DiscoveryResult>> getSearchResults() { return searchResults; }
     public List<Category> getCategoriesSnapshot() { return new ArrayList<>(categories); }
+    public DiscoveryQuery getQuery() { return query; }
     public boolean isAuthenticated() { return authRepository.isAuthenticated(); }
 
     public void refresh() {
+        if (refreshing) return;
         refreshing = true; pendingRefreshes = 3; refreshHadError = false;
         message = "Đang đồng bộ dữ liệu mới…"; publish();
         productRepository.refreshCatalog(new ProductRepository.ActionCallback() {
@@ -99,6 +112,7 @@ public class HomeViewModel extends ViewModel {
 
     public void setQuery(DiscoveryQuery value) {
         query = value == null ? DiscoveryQuery.empty() : value; publishSearch();
+        DiscoveryQueryState.save(savedState, query);
     }
 
     private CampaignRepository.ActionCallback callback() {

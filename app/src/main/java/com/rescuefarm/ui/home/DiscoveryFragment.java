@@ -62,7 +62,8 @@ public class DiscoveryFragment extends Fragment {
         viewModel.refresh();
     }
     private void setupCategories(List<Category> values) {
-        String selectedId = getArguments() == null ? "" : getArguments().getString("categoryId", "");
+        String selectedId = viewModel.getQuery().getCategoryId();
+        if (selectedId.isEmpty() && getArguments() != null) selectedId = getArguments().getString("categoryId", "");
         if (categories.size() == values.size() && !categories.isEmpty()) return;
         categories.clear(); categories.addAll(values); List<String> labels = new ArrayList<>(); labels.add("Tất cả danh mục");
         int selected = 0;
@@ -71,7 +72,7 @@ public class DiscoveryFragment extends Fragment {
             if (categories.get(i).getId().equals(selectedId)) selected = i + 1;
         }
         categorySpinner.setAdapter(adapter(labels)); categorySpinner.setSelection(selected);
-        if (!selectedId.isEmpty()) apply();
+        if (!selectedId.isEmpty() && viewModel.getQuery().getCategoryId().isEmpty()) apply();
     }
     private <T extends Enum<T>> void setupEnumSpinner(Spinner spinner, String allLabel, T[] values) {
         List<String> labels = new ArrayList<>(); if (allLabel != null) labels.add(allLabel);

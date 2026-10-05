@@ -67,6 +67,11 @@ public class FirebaseOrderRepository implements OrderRepository {
             orderDao.observeSellerOrders(sellerId),OrderCacheMapper::orders);}
 
     @Override public void checkout(CheckoutRequest request, OrderCallback callback) {
+        if (request == null || request.ownerType == OrderOwnerType.GUEST) {
+            callback.onError(ErrorCode.FORBIDDEN,
+                    "Checkout guest đang tạm khóa vì chưa có dịch vụ backend đáng tin cậy. Hãy đăng nhập để đặt hàng.");
+            return;
+        }
         if(!network.isOnline()){callback.onError(ErrorCode.NETWORK,"Checkout cần kết nối mạng.");return;}
         final String sellerId;
         try { sellerId=CheckoutPolicy.requireSingleSeller(request.items); validateRequest(request); }
@@ -174,12 +179,8 @@ public class FirebaseOrderRepository implements OrderRepository {
                 orderDao.replaceOrders(toEntities(values));});callback.onSuccess();});}).addOnFailureListener(e->failure(e,callback));
     }
     @Override public void findGuestOrder(String code,String phone,OrderCallback callback){
-        if(!network.isOnline()){callback.onError(ErrorCode.NETWORK,"Tra cứu đơn cần kết nối mạng.");return;}
-        db.collection(ORDERS).whereEqualTo("orderCode",clean(code).toUpperCase()).whereEqualTo("receiverPhone",clean(phone)).limit(1).get()
-                .addOnSuccessListener(s->{if(s.isEmpty())callback.onError(ErrorCode.NOT_FOUND,"Không tìm thấy đơn.");
-                    else {Order value=mapOrder(s.getDocuments().get(0),new ArrayList<>());cache(value);
-                        callback.onSuccess(value,false);}})
-                .addOnFailureListener(e->failure(e,callback));
+        callback.onError(ErrorCode.FORBIDDEN,
+                "Tra cứu đơn guest đã tắt để tránh lộ đơn bằng mã đơn và số điện thoại. Hãy đăng nhập tài khoản sở hữu đơn.");
     }
 
     @Override public void getOrder(String orderId,LifecycleCallback callback){
