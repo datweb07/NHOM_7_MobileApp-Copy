@@ -411,6 +411,15 @@ service cloud.firestore {
             && hasNoCredentialFields(request.resource.data);
         allow delete: if hasRole(userId, 'CUSTOMER') && resource.data.isDefault == false;
       }
+      match /devices/{deviceId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+            && request.resource.data.userId == userId
+            && request.resource.data.token is string
+            && request.resource.data.token.size() > 20
+            && request.resource.data.platform == 'ANDROID';
+        allow delete: if isOwner(userId);
+      }
     }
 
     match /sellerApplications/{sellerId} {
@@ -726,6 +735,96 @@ service cloud.firestore {
             && validComment(request.resource.data, postId);
         allow delete: if false;
       }
+    }
+
+    match /favorites/{favoriteId} {
+      allow get, list: if isSignedIn() && resource.data.customerId == request.auth.uid;
+      allow create: if isSignedIn()
+          && request.resource.data.customerId == request.auth.uid
+          && request.resource.data.productId is string
+          && request.resource.data.productId.size() > 0
+          && favoriteId == request.auth.uid + '_' + request.resource.data.productId
+          && request.resource.data.id == favoriteId
+          && request.resource.data.createdAt is timestamp;
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.customerId == request.auth.uid;
+    }
+
+    match /reviews/{reviewId} {
+      allow get, list: if resource.data.status == 'PUBLISHED'
+          || (isSignedIn() && resource.data.customerId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn()
+          && request.resource.data.customerId == request.auth.uid
+          && request.resource.data.id == reviewId
+          && reviewId == request.auth.uid + '_' + request.resource.data.orderId + '_' + request.resource.data.orderItemId
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+          && request.resource.data.content is string && request.resource.data.content.size() <= 1000
+          && request.resource.data.imageUrls is list && request.resource.data.imageUrls.size() <= 5
+          && request.resource.data.status == 'PUBLISHED'
+          && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.ownerType == 'CUSTOMER'
+          && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.ownerId == request.auth.uid
+          && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'DELIVERED'
+          && exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId)/items/$(request.resource.data.orderItemId))
+          && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)/items/$(request.resource.data.orderItemId)).data.productId == request.resource.data.productId;
+      allow update: if isSignedIn() && resource.data.customerId == request.auth.uid
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.customerId == resource.data.customerId
+          && request.resource.data.productId == resource.data.productId
+          && request.resource.data.orderId == resource.data.orderId
+          && request.resource.data.orderItemId == resource.data.orderItemId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.status == 'PUBLISHED'
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+          && request.resource.data.content is string && request.resource.data.content.size() <= 1000
+          && request.resource.data.imageUrls is list && request.resource.data.imageUrls.size() <= 5
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'rating', 'content', 'imageUrls', 'updatedAt'
+          ]);
+      allow delete: if (isSignedIn() && resource.data.customerId == request.auth.uid) || isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow get, list: if (isSignedIn() && resource.data.reporterId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn() && request.resource.data.id == reportId
+          && request.resource.data.reporterId == request.auth.uid
+          && request.resource.data.targetType in ['USER', 'PRODUCT', 'CAMPAIGN', 'POST', 'COMMENT', 'REVIEW']
+          && request.resource.data.targetId is string && request.resource.data.targetId.size() > 0
+          && request.resource.data.reason is string
+          && request.resource.data.reason.size() > 0 && request.resource.data.reason.size() <= 120
+          && request.resource.data.description is string && request.resource.data.description.size() <= 1000
+          && request.resource.data.status == 'PENDING'
+          && request.resource.data.resolvedBy == '' && request.resource.data.resolutionNote == '';
+      allow update: if isAdmin()
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.reporterId == resource.data.reporterId
+          && request.resource.data.targetType == resource.data.targetType
+          && request.resource.data.targetId == resource.data.targetId
+          && request.resource.data.reason == resource.data.reason
+          && request.resource.data.description == resource.data.description
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.resolvedBy == request.auth.uid
+          && ((resource.data.status == 'PENDING' && request.resource.data.status == 'IN_REVIEW')
+            || (resource.data.status == 'IN_REVIEW' && request.resource.data.status in ['RESOLVED', 'REJECTED']))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'resolvedBy', 'resolutionNote', 'updatedAt'
+          ]);
+      allow delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isAdmin() && request.resource.data.id == notificationId
+          && request.resource.data.userId is string
+          && request.resource.data.type in ['ORDER', 'CAMPAIGN', 'PROMOTION', 'MODERATION', 'SYSTEM']
+          && request.resource.data.title is string && request.resource.data.title.size() > 0
+          && request.resource.data.body is string && request.resource.data.referenceId is string
+          && request.resource.data.isRead == false;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid
+          && resource.data.isRead == false && request.resource.data.isRead == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
+      allow delete: if false;
     }
 
     match /{document=**} {

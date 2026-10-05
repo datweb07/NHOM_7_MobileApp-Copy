@@ -1,0 +1,3 @@
+package com.rescuefarm.service.engagement;
+import com.rescuefarm.domain.enums.OrderOwnerType;import com.rescuefarm.domain.enums.OrderStatus;
+public final class ReviewEligibilityService{public void requireEligible(String currentUserId,String orderOwnerId,OrderOwnerType ownerType,OrderStatus status,String requestedProductId,String itemProductId){if(currentUserId==null||!currentUserId.equals(orderOwnerId)||ownerType!=OrderOwnerType.CUSTOMER)throw new IllegalStateException("REVIEW_FORBIDDEN");if(status!=OrderStatus.DELIVERED)throw new IllegalStateException("ORDER_NOT_DELIVERED");if(requestedProductId==null||!requestedProductId.equals(itemProductId))throw new IllegalStateException("ORDER_ITEM_MISMATCH");}}

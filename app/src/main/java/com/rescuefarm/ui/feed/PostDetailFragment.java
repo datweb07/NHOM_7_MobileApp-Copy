@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import com.bumptech.glide.Glide;
 import com.google.android.material.textfield.TextInputEditText;
 import com.rescuefarm.R;
@@ -61,6 +62,7 @@ public class PostDetailFragment extends Fragment {
             }
         });
         String postId = getArguments() == null ? "" : getArguments().getString("postId", "");
+        view.findViewById(R.id.reportPostButton).setOnClickListener(v -> { Bundle b=new Bundle();b.putString("targetType","POST");b.putString("targetId",postId);Navigation.findNavController(v).navigate(R.id.action_postDetailFragment_to_reportFragment,b); });
         viewModel.loadPost(postId);
     }
     private void renderPost(View root, Post post) {

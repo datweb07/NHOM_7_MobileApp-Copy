@@ -19,7 +19,7 @@ import com.rescuefarm.domain.model.User;
 public class ProfileFragment extends Fragment {
     private ProfileViewModel viewModel;
     private TextView nameView, emailView, roleView, statusView;
-    private View progress, addressButton, sellerButton;
+    private View progress, addressButton, sellerButton, favoritesButton, adminReportsButton;
 
     @Nullable @Override public View onCreateView(@NonNull LayoutInflater inflater,
             @Nullable ViewGroup container, @Nullable Bundle state) {
@@ -34,12 +34,20 @@ public class ProfileFragment extends Fragment {
         progress = view.findViewById(R.id.profileProgress);
         addressButton = view.findViewById(R.id.addressesButton);
         sellerButton = view.findViewById(R.id.sellerProfileButton);
+        favoritesButton = view.findViewById(R.id.favoritesButton);
+        adminReportsButton = view.findViewById(R.id.adminReportsButton);
         view.findViewById(R.id.editProfileButton).setOnClickListener(
                 Navigation.createNavigateOnClickListener(R.id.action_profileFragment_to_editProfileFragment));
         addressButton.setOnClickListener(Navigation.createNavigateOnClickListener(
                 R.id.action_profileFragment_to_addressListFragment));
         sellerButton.setOnClickListener(Navigation.createNavigateOnClickListener(
                 R.id.action_profileFragment_to_sellerProfileFragment));
+        favoritesButton.setOnClickListener(Navigation.createNavigateOnClickListener(
+                R.id.action_profileFragment_to_favoriteFragment));
+        view.findViewById(R.id.notificationsButton).setOnClickListener(
+                Navigation.createNavigateOnClickListener(R.id.action_profileFragment_to_notificationFragment));
+        adminReportsButton.setOnClickListener(Navigation.createNavigateOnClickListener(
+                R.id.action_profileFragment_to_adminReportFragment));
         viewModel = new ViewModelProvider(this, new ProfileViewModelFactory(requireContext()))
                 .get(ProfileViewModel.class);
         viewModel.getState().observe(getViewLifecycleOwner(), value -> render(value));
@@ -57,6 +65,8 @@ public class ProfileFragment extends Fragment {
         roleView.setText(user.getRole().name());
         addressButton.setVisibility(user.getRole() == UserRole.CUSTOMER ? View.VISIBLE : View.GONE);
         sellerButton.setVisibility(user.getRole() == UserRole.SELLER ? View.VISIBLE : View.GONE);
+        favoritesButton.setVisibility(user.getRole() == UserRole.CUSTOMER ? View.VISIBLE : View.GONE);
+        adminReportsButton.setVisibility(user.getRole() == UserRole.ADMIN ? View.VISIBLE : View.GONE);
         if (user instanceof Seller) {
             Seller seller = (Seller) user;
             statusView.setText(seller.canSell()

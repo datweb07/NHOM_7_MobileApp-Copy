@@ -1,0 +1,2 @@
+package com.rescuefarm.data.repository;import android.content.Context;import com.rescuefarm.data.remote.firebase.FirebaseEngagementRepository;import com.rescuefarm.service.network.AndroidNetworkStatusProvider;
+public final class EngagementRepositoryFactory{private EngagementRepositoryFactory(){}public static EngagementRepository create(Context c){return new FirebaseEngagementRepository(new AndroidNetworkStatusProvider(c));}}

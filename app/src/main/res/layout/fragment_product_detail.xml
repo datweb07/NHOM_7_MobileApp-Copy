@@ -45,5 +45,14 @@
         <TextView android:id="@+id/productDetailDescription" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_lg"
             android:textColor="@color/rescue_on_surface_variant" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/favoriteProductButton"
+            android:layout_width="match_parent" android:layout_height="@dimen/touch_target_min"
+            android:text="@string/toggle_favorite_action" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/openReviewsButton"
+            android:layout_width="match_parent" android:layout_height="@dimen/touch_target_min"
+            android:text="@string/reviews_title" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/reportProductButton"
+            android:layout_width="match_parent" android:layout_height="@dimen/touch_target_min"
+            android:text="@string/report_action" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

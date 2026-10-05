@@ -117,6 +117,9 @@
             app:destination="@id/addressListFragment" />
         <action android:id="@+id/action_profileFragment_to_sellerProfileFragment"
             app:destination="@id/sellerProfileFragment" />
+        <action android:id="@+id/action_profileFragment_to_favoriteFragment" app:destination="@id/favoriteFragment" />
+        <action android:id="@+id/action_profileFragment_to_notificationFragment" app:destination="@id/notificationFragment" />
+        <action android:id="@+id/action_profileFragment_to_adminReportFragment" app:destination="@id/adminReportFragment" />
     </fragment>
     <fragment android:id="@+id/editProfileFragment"
         android:name="com.rescuefarm.ui.profile.EditProfileFragment" android:label="@string/edit_profile_title" />
@@ -152,6 +155,9 @@
         android:name="com.rescuefarm.ui.product.ProductDetailFragment" android:label="@string/product_editor_title">
         <action android:id="@+id/action_productDetailFragment_to_cartFragment"
             app:destination="@id/cartFragment" />
+        <action android:id="@+id/action_productDetailFragment_to_reviewFragment" app:destination="@id/reviewFragment" />
+        <action android:id="@+id/action_productDetailFragment_to_reportFragment" app:destination="@id/reportFragment" />
+        <deepLink app:uri="rescuefarm://products/{productId}" />
     </fragment>
     <fragment android:id="@+id/cartFragment"
         android:name="com.rescuefarm.ui.cart.CartFragment" android:label="@string/cart_title">
@@ -163,7 +169,7 @@
     <fragment android:id="@+id/orderConfirmationFragment" android:name="com.rescuefarm.ui.checkout.OrderConfirmationFragment"
         android:label="@string/order_confirmation_title"><action android:id="@+id/action_orderConfirmationFragment_to_orderDetailFragment" app:destination="@id/orderDetailFragment" /></fragment>
     <fragment android:id="@+id/orderDetailFragment" android:name="com.rescuefarm.ui.order.OrderDetailFragment"
-        android:label="@string/order_detail_title" />
+        android:label="@string/order_detail_title"><deepLink app:uri="rescuefarm://orders/{orderId}" /></fragment>
     <fragment android:id="@+id/sellerOrderListFragment" android:name="com.rescuefarm.ui.order.SellerOrderListFragment"
         android:label="@string/seller_orders_title"><action android:id="@+id/action_sellerOrderListFragment_to_orderDetailFragment" app:destination="@id/orderDetailFragment" /></fragment>
     <fragment android:id="@+id/sellerProductListFragment"
@@ -187,7 +193,7 @@
             app:destination="@id/campaignDetailFragment" />
     </fragment>
     <fragment android:id="@+id/campaignDetailFragment"
-        android:name="com.rescuefarm.ui.campaign.CampaignDetailFragment" android:label="@string/campaign_detail_title" />
+        android:name="com.rescuefarm.ui.campaign.CampaignDetailFragment" android:label="@string/campaign_detail_title"><deepLink app:uri="rescuefarm://campaigns/{campaignId}" /></fragment>
     <fragment android:id="@+id/sellerCampaignListFragment"
         android:name="com.rescuefarm.ui.campaign.SellerCampaignListFragment" android:label="@string/seller_campaigns_title">
         <action android:id="@+id/action_sellerCampaignListFragment_to_campaignEditorFragment"
@@ -207,7 +213,7 @@
             app:destination="@id/postDetailFragment" />
     </fragment>
     <fragment android:id="@+id/postDetailFragment"
-        android:name="com.rescuefarm.ui.feed.PostDetailFragment" android:label="@string/feed_title" />
+        android:name="com.rescuefarm.ui.feed.PostDetailFragment" android:label="@string/feed_title"><deepLink app:uri="rescuefarm://posts/{postId}" /><action android:id="@+id/action_postDetailFragment_to_reportFragment" app:destination="@id/reportFragment" /></fragment>
     <fragment android:id="@+id/sellerPostListFragment"
         android:name="com.rescuefarm.ui.feed.SellerPostListFragment" android:label="@string/seller_posts_title">
         <action android:id="@+id/action_sellerPostListFragment_to_postEditorFragment"
@@ -217,4 +223,9 @@
     </fragment>
     <fragment android:id="@+id/postEditorFragment"
         android:name="com.rescuefarm.ui.feed.PostEditorFragment" android:label="@string/post_editor_title" />
+    <fragment android:id="@+id/favoriteFragment" android:name="com.rescuefarm.ui.engagement.FavoriteFragment" android:label="@string/favorites_title"><action android:id="@+id/action_favoriteFragment_to_productDetailFragment" app:destination="@id/productDetailFragment" /></fragment>
+    <fragment android:id="@+id/reviewFragment" android:name="com.rescuefarm.ui.engagement.ReviewFragment" android:label="@string/reviews_title" />
+    <fragment android:id="@+id/reportFragment" android:name="com.rescuefarm.ui.engagement.ReportFragment" android:label="@string/report_action" />
+    <fragment android:id="@+id/notificationFragment" android:name="com.rescuefarm.ui.engagement.NotificationFragment" android:label="@string/notifications_title"><deepLink app:uri="rescuefarm://notifications" /></fragment>
+    <fragment android:id="@+id/adminReportFragment" android:name="com.rescuefarm.ui.engagement.AdminReportFragment" android:label="@string/admin_reports_title"><deepLink app:uri="rescuefarm://reports/{reportId}" /></fragment>
 </navigation>

@@ -34,6 +34,9 @@
         <com.google.android.material.button.MaterialButton android:id="@+id/sendCommentButton"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="@string/send_comment_action" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/reportPostButton"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/report_action" />
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:layout_marginTop="16dp" android:text="@string/comments_title"
             android:textAppearance="@style/TextAppearance.RescueFarm.SectionTitle" />

@@ -21,6 +21,8 @@ import com.rescuefarm.service.pricing.PriceBreakdown;
 import com.rescuefarm.ui.cart.CartScreenState;
 import com.rescuefarm.ui.cart.CartViewModel;
 import com.rescuefarm.ui.cart.CartViewModelFactory;
+import com.rescuefarm.ui.engagement.*;
+import com.google.firebase.auth.FirebaseAuth;
 import java.util.ArrayList;
 import java.text.NumberFormat;
 import java.util.List;
@@ -31,6 +33,7 @@ public class ProductDetailFragment extends Fragment {
     private Product currentProduct; private EditText quantityInput;
     private CartViewModel cartViewModel; private PriceBreakdown currentPrice;
     private List<ProductBatch> currentBatches = new ArrayList<>();
+    private EngagementViewModel engagementViewModel;
     @Nullable @Override public View onCreateView(@NonNull LayoutInflater inflater,
             @Nullable ViewGroup parent, @Nullable Bundle state) {
         return inflater.inflate(R.layout.fragment_product_detail, parent, false);
@@ -43,6 +46,12 @@ public class ProductDetailFragment extends Fragment {
                 .get(ProductViewModel.class);
         cartViewModel = new ViewModelProvider(this, new CartViewModelFactory(requireContext()))
                 .get(CartViewModel.class);
+        engagementViewModel = new ViewModelProvider(this, new EngagementViewModelFactory(requireContext()))
+                .get(EngagementViewModel.class);
+        engagementViewModel.getState().observe(getViewLifecycleOwner(), value -> {
+            if (value.getStatus() == EngagementState.Status.SUCCESS || value.getStatus() == EngagementState.Status.ERROR)
+                Toast.makeText(requireContext(), value.getMessage(), Toast.LENGTH_SHORT).show();
+        });
         viewModel.getState().observe(getViewLifecycleOwner(), value -> {
             if (value.getStatus() == ProductScreenState.Status.PRODUCT) render(view, value.getProduct());
             else if (value.getStatus() == ProductScreenState.Status.ERROR)
@@ -61,6 +70,12 @@ public class ProductDetailFragment extends Fragment {
         view.findViewById(R.id.addToCartButton).setOnClickListener(v -> addToCart());
         view.findViewById(R.id.openCartButton).setOnClickListener(Navigation.createNavigateOnClickListener(
                 R.id.action_productDetailFragment_to_cartFragment));
+        view.findViewById(R.id.favoriteProductButton).setOnClickListener(v -> {
+            String uid = FirebaseAuth.getInstance().getCurrentUser() == null ? "" : FirebaseAuth.getInstance().getCurrentUser().getUid();
+            engagementViewModel.toggleFavorite(uid, productId);
+        });
+        view.findViewById(R.id.openReviewsButton).setOnClickListener(v -> { Bundle b=new Bundle();b.putString("productId",productId);Navigation.findNavController(v).navigate(R.id.action_productDetailFragment_to_reviewFragment,b); });
+        view.findViewById(R.id.reportProductButton).setOnClickListener(v -> { Bundle b=new Bundle();b.putString("targetType","PRODUCT");b.putString("targetId",productId);Navigation.findNavController(v).navigate(R.id.action_productDetailFragment_to_reportFragment,b); });
         viewModel.loadProduct(productId); viewModel.refreshBatches(productId);
     }
     private void render(View view, Product product) {
