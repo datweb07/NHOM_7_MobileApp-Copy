@@ -22,12 +22,20 @@ import com.rescuefarm.domain.model.Banner;
 import com.rescuefarm.domain.model.Category;
 import com.rescuefarm.domain.model.Product;
 import com.rescuefarm.domain.model.RescueCampaign;
+import com.rescuefarm.domain.model.Post;
+import com.rescuefarm.ui.feed.PostCardRenderer;
+import com.rescuefarm.ui.feed.PostViewModel;
+import com.rescuefarm.ui.feed.PostViewModelFactory;
+import com.google.android.material.button.MaterialButton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class GuestHomeFragment extends Fragment {
     private HomeViewModel viewModel;
+    private PostViewModel postViewModel;
     private HomeCardRenderer renderer;
+    private PostCardRenderer postRenderer;
     private TextView message;
     private ProgressBar progress;
     private LinearLayout bannerSection, criticalSection, mobileSection, fixedSection,
@@ -42,6 +50,7 @@ public class GuestHomeFragment extends Fragment {
 
     @Override public void onViewCreated(@NonNull View view, @Nullable Bundle state) {
         super.onViewCreated(view, state); renderer = new HomeCardRenderer(this);
+        postRenderer = new PostCardRenderer(this);
         message = view.findViewById(R.id.homeMessage); progress = view.findViewById(R.id.homeProgress);
         bannerSection = view.findViewById(R.id.bannerSection);
         criticalSection = view.findViewById(R.id.criticalSection);
@@ -54,7 +63,10 @@ public class GuestHomeFragment extends Fragment {
         feedSection = view.findViewById(R.id.feedSection);
         viewModel = new ViewModelProvider(this, new HomeViewModelFactory(requireContext()))
                 .get(HomeViewModel.class);
+        postViewModel = new ViewModelProvider(this, new PostViewModelFactory(requireContext()))
+                .get(PostViewModel.class);
         viewModel.getHomeState().observe(getViewLifecycleOwner(), this::render);
+        postViewModel.getFeed().observe(getViewLifecycleOwner(), this::renderFeed);
 
         View login = view.findViewById(R.id.loginButton); View profile = view.findViewById(R.id.profileButton);
         login.setVisibility(viewModel.isAuthenticated() ? View.GONE : View.VISIBLE);
@@ -67,7 +79,7 @@ public class GuestHomeFragment extends Fragment {
                 R.id.action_guestHomeFragment_to_discoveryFragment));
         view.findViewById(R.id.refreshHomeButton).setOnClickListener(v -> viewModel.refresh());
         view.findViewById(R.id.locationHomeButton).setOnClickListener(v -> requestLocation());
-        viewModel.refresh();
+        viewModel.refresh(); postViewModel.refreshFeed();
     }
 
     private void requestLocation() {
@@ -98,8 +110,17 @@ public class GuestHomeFragment extends Fragment {
         renderProducts(state.getValueProducts());
         renderCampaigns(campaignSection, state.getActiveCampaigns(), state, "Chưa có chiến dịch ACTIVE trong cache.");
         renderCategories(state.getCategories());
-        feedSection.removeAllViews(); feedSection.addView(renderer.message(
-                "Feed cộng đồng sẽ được kết nối ở Phase 7; Home giữ đúng vị trí section này."));
+    }
+    private void renderFeed(List<Post> values) {
+        feedSection.removeAllViews(); List<Post> safe = values == null ? new ArrayList<>() : values;
+        if (safe.isEmpty()) feedSection.addView(postRenderer.message("Chưa có post đã duyệt trong cache."));
+        else for (int index = 0; index < Math.min(3, safe.size()); index++) {
+            Post post = safe.get(index); feedSection.addView(postRenderer.card(post, false,
+                    v -> openPost(post.getId())));
+        }
+        MaterialButton all = new MaterialButton(requireContext()); all.setText(R.string.open_feed_action);
+        all.setOnClickListener(v -> Navigation.findNavController(requireView()).navigate(
+                R.id.action_guestHomeFragment_to_feedFragment)); feedSection.addView(all);
     }
     private void renderBanners(List<Banner> values) {
         bannerSection.removeAllViews();
@@ -138,5 +159,10 @@ public class GuestHomeFragment extends Fragment {
         Bundle args = new Bundle(); args.putString("productId", id);
         Navigation.findNavController(requireView()).navigate(
                 R.id.action_guestHomeFragment_to_productDetailFragment, args);
+    }
+    private void openPost(String id) {
+        Bundle args = new Bundle(); args.putString("postId", id);
+        Navigation.findNavController(requireView()).navigate(
+                R.id.action_guestHomeFragment_to_postDetailFragment, args);
     }
 }

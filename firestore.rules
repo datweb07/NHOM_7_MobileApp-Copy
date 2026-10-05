@@ -138,6 +138,38 @@ service cloud.firestore {
               && after.reservedQuantity <= before.reservedQuantity);
     }
 
+    function validPost(data) {
+      return data.id is string
+          && data.sellerId is string
+          && data.title is string
+          && data.title.size() >= 3 && data.title.size() <= 120
+          && data.content is string
+          && data.content.size() >= 10 && data.content.size() <= 3000
+          && data.campaignId is string
+          && data.imageUrls is list && data.imageUrls.size() <= 6
+          && data.linkedProductIds is list && data.linkedProductIds.size() <= 12
+          && data.urgencyLevel in ['NORMAL', 'HIGH', 'CRITICAL']
+          && data.status in ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'REJECTED', 'HIDDEN']
+          && data.viewCount is int && data.viewCount >= 0
+          && data.createdAt is timestamp;
+    }
+
+    function publishedPost(postId) {
+      return get(/databases/$(database)/documents/posts/$(postId)).data.status == 'PUBLISHED';
+    }
+
+    function validComment(data, postId) {
+      return data.id is string
+          && data.postId == postId
+          && data.userId is string
+          && data.status in ['ACTIVE', 'EDITED', 'DELETED', 'HIDDEN']
+          && data.content is string
+          && ((data.status == 'DELETED' && data.content == '')
+            || (data.status != 'DELETED' && data.content.size() >= 1 && data.content.size() <= 500))
+          && data.createdAt is timestamp
+          && data.updatedAt is timestamp;
+    }
+
     function hasNoCredentialFields(data) {
       return !data.keys().hasAny(['password', 'passwordHash', 'rawPassword']);
     }
@@ -326,6 +358,71 @@ service cloud.firestore {
     match /banners/{bannerId} {
       allow get, list: if resource.data.active == true;
       allow create, update, delete: if false;
+    }
+
+    match /posts/{postId} {
+      allow get, list: if resource.data.status == 'PUBLISHED'
+          || (isSignedIn() && resource.data.sellerId == request.auth.uid)
+          || isAdmin();
+      allow create: if isApprovedSeller(request.auth.uid)
+          && request.resource.data.id == postId
+          && request.resource.data.sellerId == request.auth.uid
+          && request.resource.data.status in ['DRAFT', 'PENDING_APPROVAL']
+          && request.resource.data.viewCount == 0
+          && validPost(request.resource.data)
+          && hasNoCredentialFields(request.resource.data);
+      allow update: if (
+            (isApprovedSeller(request.auth.uid)
+              && resource.data.sellerId == request.auth.uid
+              && resource.data.status in ['DRAFT', 'REJECTED']
+              && request.resource.data.status in ['DRAFT', 'PENDING_APPROVAL']
+              && request.resource.data.id == resource.data.id
+              && request.resource.data.sellerId == resource.data.sellerId
+              && request.resource.data.createdAt == resource.data.createdAt
+              && request.resource.data.viewCount == resource.data.viewCount)
+            || (isAdmin()
+              && resource.data.status == 'PENDING_APPROVAL'
+              && request.resource.data.status in ['PUBLISHED', 'REJECTED']
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))
+          )
+          && validPost(request.resource.data)
+          && hasNoCredentialFields(request.resource.data);
+      allow delete: if false;
+
+      match /reactions/{reactionId} {
+        allow get, list: if publishedPost(postId);
+        allow create: if isSignedIn() && publishedPost(postId)
+            && reactionId == request.auth.uid
+            && request.resource.data.id == request.auth.uid
+            && request.resource.data.userId == request.auth.uid
+            && request.resource.data.postId == postId
+            && request.resource.data.type in ['LIKE', 'SUPPORT', 'CARE']
+            && request.resource.data.createdAt is timestamp;
+        allow update: if isOwner(reactionId) && publishedPost(postId)
+            && request.resource.data.id == resource.data.id
+            && request.resource.data.userId == resource.data.userId
+            && request.resource.data.postId == resource.data.postId
+            && request.resource.data.type in ['LIKE', 'SUPPORT', 'CARE']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['type', 'createdAt']);
+        allow delete: if isOwner(reactionId);
+      }
+
+      match /comments/{commentId} {
+        allow get, list: if publishedPost(postId);
+        allow create: if isSignedIn() && publishedPost(postId)
+            && request.resource.data.id == commentId
+            && request.resource.data.userId == request.auth.uid
+            && request.resource.data.status == 'ACTIVE'
+            && validComment(request.resource.data, postId);
+        allow update: if isSignedIn() && resource.data.userId == request.auth.uid
+            && resource.data.status in ['ACTIVE', 'EDITED']
+            && request.resource.data.id == resource.data.id
+            && request.resource.data.userId == resource.data.userId
+            && request.resource.data.postId == resource.data.postId
+            && request.resource.data.status in ['EDITED', 'DELETED']
+            && validComment(request.resource.data, postId);
+        allow delete: if false;
+      }
     }
 
     match /{document=**} {

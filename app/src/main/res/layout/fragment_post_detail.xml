@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/rescue_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_md">
+        <ImageView android:id="@+id/postDetailImage" android:layout_width="match_parent"
+            android:layout_height="220dp" android:scaleType="centerCrop" android:visibility="gone"
+            android:contentDescription="@string/post_image_description" />
+        <TextView android:id="@+id/postDetailUrgency" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:textStyle="bold" />
+        <TextView android:id="@+id/postDetailTitle" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.RescueFarm.Display" />
+        <TextView android:id="@+id/postDetailContent" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textSize="16sp" />
+        <TextView android:id="@+id/reactionSummary" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textStyle="bold" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <com.google.android.material.button.MaterialButton android:id="@+id/likeButton"
+                style="@style/Widget.Material3.Button.TonalButton" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1" android:text="LIKE" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/supportButton"
+                style="@style/Widget.Material3.Button.TonalButton" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1" android:text="SUPPORT" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/careButton"
+                style="@style/Widget.Material3.Button.TonalButton" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1" android:text="CARE" />
+        </LinearLayout>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="@string/comment_hint">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/commentInput"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLength="500" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/sendCommentButton"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/send_comment_action" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:text="@string/comments_title"
+            android:textAppearance="@style/TextAppearance.RescueFarm.SectionTitle" />
+        <LinearLayout android:id="@+id/commentContainer" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="vertical" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

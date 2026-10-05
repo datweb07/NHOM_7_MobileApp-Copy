@@ -61,6 +61,10 @@
             app:destination="@id/productDetailFragment" />
         <action android:id="@+id/action_guestHomeFragment_to_campaignDetailFragment"
             app:destination="@id/campaignDetailFragment" />
+        <action android:id="@+id/action_guestHomeFragment_to_feedFragment"
+            app:destination="@id/feedFragment" />
+        <action android:id="@+id/action_guestHomeFragment_to_postDetailFragment"
+            app:destination="@id/postDetailFragment" />
     </fragment>
     <fragment android:id="@+id/discoveryFragment"
         android:name="com.rescuefarm.ui.home.DiscoveryFragment" android:label="@string/discovery_title">
@@ -129,6 +133,8 @@
             app:destination="@id/sellerProductListFragment" />
         <action android:id="@+id/action_sellerProfileFragment_to_sellerCampaignListFragment"
             app:destination="@id/sellerCampaignListFragment" />
+        <action android:id="@+id/action_sellerProfileFragment_to_sellerPostListFragment"
+            app:destination="@id/sellerPostListFragment" />
     </fragment>
     <fragment android:id="@+id/sellerApplicationFragment"
         android:name="com.rescuefarm.ui.profile.SellerApplicationFragment"
@@ -171,4 +177,20 @@
         android:name="com.rescuefarm.ui.campaign.CampaignEditorFragment" android:label="@string/campaign_editor_title" />
     <fragment android:id="@+id/mobileRescueFragment"
         android:name="com.rescuefarm.ui.campaign.MobileRescueFragment" android:label="@string/mobile_rescue_title" />
+    <fragment android:id="@+id/feedFragment"
+        android:name="com.rescuefarm.ui.feed.FeedFragment" android:label="@string/feed_title">
+        <action android:id="@+id/action_feedFragment_to_postDetailFragment"
+            app:destination="@id/postDetailFragment" />
+    </fragment>
+    <fragment android:id="@+id/postDetailFragment"
+        android:name="com.rescuefarm.ui.feed.PostDetailFragment" android:label="@string/feed_title" />
+    <fragment android:id="@+id/sellerPostListFragment"
+        android:name="com.rescuefarm.ui.feed.SellerPostListFragment" android:label="@string/seller_posts_title">
+        <action android:id="@+id/action_sellerPostListFragment_to_postEditorFragment"
+            app:destination="@id/postEditorFragment" />
+        <action android:id="@+id/action_sellerPostListFragment_to_postDetailFragment"
+            app:destination="@id/postDetailFragment" />
+    </fragment>
+    <fragment android:id="@+id/postEditorFragment"
+        android:name="com.rescuefarm.ui.feed.PostEditorFragment" android:label="@string/post_editor_title" />
 </navigation>
