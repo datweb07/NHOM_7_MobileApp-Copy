@@ -32,6 +32,9 @@ public class SellerProfileFragment extends Fragment {
         view.findViewById(R.id.openSellerApplicationButton).setOnClickListener(
                 Navigation.createNavigateOnClickListener(
                         R.id.action_sellerProfileFragment_to_sellerApplicationFragment));
+        view.findViewById(R.id.openSellerDashboardButton).setOnClickListener(
+                Navigation.createNavigateOnClickListener(
+                        R.id.action_sellerProfileFragment_to_sellerDashboardFragment));
         view.findViewById(R.id.openSellerProductsButton).setOnClickListener(
                 Navigation.createNavigateOnClickListener(
                         R.id.action_sellerProfileFragment_to_sellerProductListFragment));
