@@ -12,11 +12,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import com.bumptech.glide.Glide;
 import com.rescuefarm.R;
 import com.rescuefarm.domain.model.Product;
 import com.rescuefarm.domain.model.ProductBatch;
 import com.rescuefarm.service.pricing.PriceBreakdown;
+import com.rescuefarm.ui.cart.CartScreenState;
+import com.rescuefarm.ui.cart.CartViewModel;
+import com.rescuefarm.ui.cart.CartViewModelFactory;
+import java.util.ArrayList;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
@@ -24,6 +29,8 @@ import java.util.Locale;
 public class ProductDetailFragment extends Fragment {
     private ProductViewModel viewModel; private String productId; private TextView stock;
     private Product currentProduct; private EditText quantityInput;
+    private CartViewModel cartViewModel; private PriceBreakdown currentPrice;
+    private List<ProductBatch> currentBatches = new ArrayList<>();
     @Nullable @Override public View onCreateView(@NonNull LayoutInflater inflater,
             @Nullable ViewGroup parent, @Nullable Bundle state) {
         return inflater.inflate(R.layout.fragment_product_detail, parent, false);
@@ -34,6 +41,8 @@ public class ProductDetailFragment extends Fragment {
         quantityInput = view.findViewById(R.id.pricingQuantityInput);
         viewModel = new ViewModelProvider(this, new ProductViewModelFactory(requireContext()))
                 .get(ProductViewModel.class);
+        cartViewModel = new ViewModelProvider(this, new CartViewModelFactory(requireContext()))
+                .get(CartViewModel.class);
         viewModel.getState().observe(getViewLifecycleOwner(), value -> {
             if (value.getStatus() == ProductScreenState.Status.PRODUCT) render(view, value.getProduct());
             else if (value.getStatus() == ProductScreenState.Status.ERROR)
@@ -42,6 +51,16 @@ public class ProductDetailFragment extends Fragment {
         viewModel.getBatches(productId).observe(getViewLifecycleOwner(), this::renderStock);
         viewModel.getPriceBreakdown().observe(getViewLifecycleOwner(), value -> renderPrice(view, value));
         view.findViewById(R.id.recalculatePriceButton).setOnClickListener(v -> recalculate());
+        cartViewModel.getState().observe(getViewLifecycleOwner(), value -> {
+            if (value.getStatus() == CartScreenState.Status.SAVED
+                    || value.getStatus() == CartScreenState.Status.ERROR
+                    || value.getStatus() == CartScreenState.Status.OFFLINE) {
+                Toast.makeText(requireContext(), value.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+        view.findViewById(R.id.addToCartButton).setOnClickListener(v -> addToCart());
+        view.findViewById(R.id.openCartButton).setOnClickListener(Navigation.createNavigateOnClickListener(
+                R.id.action_productDetailFragment_to_cartFragment));
         viewModel.loadProduct(productId); viewModel.refreshBatches(productId);
     }
     private void render(View view, Product product) {
@@ -69,6 +88,7 @@ public class ProductDetailFragment extends Fragment {
     }
     private void renderPrice(View view, PriceBreakdown value) {
         if (value == null) return;
+        currentPrice = value;
         NumberFormat money = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
         String text = getString(R.string.price_breakdown_format,
                 money.format(value.getOriginalPrice()), money.format(value.getRescuePrice()),
@@ -77,10 +97,26 @@ public class ProductDetailFragment extends Fragment {
         ((TextView) view.findViewById(R.id.priceBreakdownText)).setText(text);
     }
     private void renderStock(List<ProductBatch> batches) {
+        currentBatches = batches == null ? new ArrayList<>() : new ArrayList<>(batches);
         double available = 0D; int sellable = 0;
         if (batches != null) for (ProductBatch batch : batches) if (batch.isSellable(new java.util.Date())) {
             available += batch.getAvailableQuantity(); sellable++;
         }
         stock.setText(getString(R.string.product_stock_format, available, sellable));
+    }
+    private void addToCart() {
+        if (currentProduct == null || currentPrice == null) return;
+        double quantity;
+        try { quantity = Double.parseDouble(quantityInput.getText().toString().trim()); }
+        catch (NumberFormatException error) {
+            Toast.makeText(requireContext(), R.string.invalid_pricing_quantity, Toast.LENGTH_SHORT).show(); return;
+        }
+        ProductBatch selected = null; java.util.Date now = new java.util.Date();
+        for (ProductBatch batch : currentBatches) if (batch.isSellable(now)
+                && batch.hasAvailableStock(quantity)) { selected = batch; break; }
+        if (selected == null) {
+            Toast.makeText(requireContext(), R.string.cart_no_sellable_batch, Toast.LENGTH_LONG).show(); return;
+        }
+        cartViewModel.add(currentProduct, selected, quantity, currentPrice.getFinalUnitPrice());
     }
 }

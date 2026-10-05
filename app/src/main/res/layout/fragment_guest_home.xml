@@ -34,6 +34,9 @@
             <com.google.android.material.button.MaterialButton android:id="@+id/profileButton"
                 style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content"
                 android:layout_height="wrap_content" android:text="@string/profile_action" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/cartHomeButton"
+                style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="@string/open_cart_action" />
         </LinearLayout>
         <TextView android:id="@+id/homeMessage" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:textColor="@color/rescue_on_surface_variant"

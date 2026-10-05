@@ -32,6 +32,10 @@ public interface ProductRepository {
         void onSuccess(List<Promotion> promotions);
         void onError(ErrorCode error, String message);
     }
+    interface CartQuoteCallback {
+        void onSuccess(Product product, ProductBatch batch, Promotion promotion);
+        void onError(ErrorCode error, String message);
+    }
 
     LiveData<List<Category>> observeCategories();
     LiveData<List<Product>> observeProducts();
@@ -58,6 +62,9 @@ public interface ProductRepository {
     }
     default void setPromotionActive(String productId, boolean active, ActionCallback callback) {
         callback.onError(ErrorCode.NOT_CONFIGURED, "Promotion repository is not configured.");
+    }
+    default void getCartQuote(String productId, String batchId, CartQuoteCallback callback) {
+        callback.onError(ErrorCode.NOT_CONFIGURED, "Không thể revalidate giỏ khi offline.");
     }
     default void close() { }
 }

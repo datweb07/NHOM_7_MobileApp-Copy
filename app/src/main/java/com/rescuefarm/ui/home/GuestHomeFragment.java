@@ -77,6 +77,8 @@ public class GuestHomeFragment extends Fragment {
                 R.id.action_guestHomeFragment_to_profileFragment));
         view.findViewById(R.id.searchButton).setOnClickListener(Navigation.createNavigateOnClickListener(
                 R.id.action_guestHomeFragment_to_discoveryFragment));
+        view.findViewById(R.id.cartHomeButton).setOnClickListener(Navigation.createNavigateOnClickListener(
+                R.id.action_guestHomeFragment_to_cartFragment));
         view.findViewById(R.id.refreshHomeButton).setOnClickListener(v -> viewModel.refresh());
         view.findViewById(R.id.locationHomeButton).setOnClickListener(v -> requestLocation());
         viewModel.refresh(); postViewModel.refreshFeed();

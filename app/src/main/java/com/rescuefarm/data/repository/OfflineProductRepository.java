@@ -67,6 +67,9 @@ public class OfflineProductRepository implements ProductRepository {
     @Override public void setPromotionActive(String productId, boolean active, ActionCallback callback) {
         unavailable(callback);
     }
+    @Override public void getCartQuote(String productId, String batchId, CartQuoteCallback callback) {
+        callback.onError(ErrorCode.NOT_CONFIGURED, "Đang offline; giá và tồn kho chưa được revalidate.");
+    }
     private void unavailable(ActionCallback callback) {
         callback.onError(ErrorCode.NOT_CONFIGURED, MESSAGE);
     }

@@ -84,6 +84,16 @@ service cloud.firestore {
           && data.active is bool;
     }
 
+    function validCustomerCart(data, customerId) {
+      return data.id == customerId
+          && data.ownerKey == customerId
+          && data.ownerType == 'CUSTOMER'
+          && data.items is list
+          && data.items.size() <= 100
+          && data.updatedAt is timestamp
+          && hasNoCredentialFields(data);
+    }
+
     function validInventoryTransition(before, after) {
       return (before.reservedQuantity == 0
               && before.soldQuantity == 0
@@ -343,6 +353,14 @@ service cloud.firestore {
           && validPromotion(request.resource.data, promotionId)
           && hasNoCredentialFields(request.resource.data);
       allow delete: if false;
+    }
+
+    match /customerCarts/{customerId} {
+      allow get: if hasRole(customerId, 'CUSTOMER');
+      allow list: if false;
+      allow create, update: if hasRole(customerId, 'CUSTOMER')
+          && validCustomerCart(request.resource.data, customerId);
+      allow delete: if hasRole(customerId, 'CUSTOMER');
     }
 
     match /campaigns/{campaignId} {

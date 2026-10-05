@@ -183,4 +183,19 @@
     <string name="invalid_pricing_quantity">Số lượng phải là số dương.</string>
     <string name="price_breakdown_format">Giá gốc: %1$s\nGiá giải cứu: %2$s\nGiảm promotion: %3$s\nGiảm số lượng: %4$.2f%%\nĐơn giá cuối: %5$s\nThành tiền: %6$s</string>
     <string name="promotion_preview_title">Xem trước giá (số lượng 1)</string>
+    <string name="cart_title">Giỏ nông sản giải cứu</string>
+    <string name="open_cart_action">Giỏ hàng</string>
+    <string name="add_to_cart_action">Thêm vào giỏ</string>
+    <string name="cart_revalidate_action">Đồng bộ &amp; kiểm tra giá/tồn</string>
+    <string name="cart_clear_action">Xóa giỏ</string>
+    <string name="cart_update_action">Cập nhật</string>
+    <string name="cart_remove_action">Xóa</string>
+    <string name="cart_empty">Giỏ hiện đang trống.</string>
+    <string name="guest_cart_storage_notice">Guest cart • lưu Room trên thiết bị và giữ lại sau khi mở lại app.</string>
+    <string name="customer_cart_storage_notice">Customer cart • đồng bộ với Firestore theo tài khoản hiện tại.</string>
+    <string name="cart_no_reservation_notice">Giỏ chỉ kiểm tra giá và tồn kho; hàng chưa được giữ chỗ cho đến checkout.</string>
+    <string name="cart_summary_format">Đã chọn %1$d item từ %2$d seller • Tạm tính %3$s</string>
+    <string name="cart_seller_format">Seller: %1$s</string>
+    <string name="cart_item_price_format">Đơn giá %1$s • Thành tiền %2$s</string>
+    <string name="cart_no_sellable_batch">Không có batch còn hạn và đủ số lượng.</string>
 </resources>

@@ -65,6 +65,8 @@
             app:destination="@id/feedFragment" />
         <action android:id="@+id/action_guestHomeFragment_to_postDetailFragment"
             app:destination="@id/postDetailFragment" />
+        <action android:id="@+id/action_guestHomeFragment_to_cartFragment"
+            app:destination="@id/cartFragment" />
     </fragment>
     <fragment android:id="@+id/discoveryFragment"
         android:name="com.rescuefarm.ui.home.DiscoveryFragment" android:label="@string/discovery_title">
@@ -145,7 +147,12 @@
             app:destination="@id/productDetailFragment" />
     </fragment>
     <fragment android:id="@+id/productDetailFragment"
-        android:name="com.rescuefarm.ui.product.ProductDetailFragment" android:label="@string/product_editor_title" />
+        android:name="com.rescuefarm.ui.product.ProductDetailFragment" android:label="@string/product_editor_title">
+        <action android:id="@+id/action_productDetailFragment_to_cartFragment"
+            app:destination="@id/cartFragment" />
+    </fragment>
+    <fragment android:id="@+id/cartFragment"
+        android:name="com.rescuefarm.ui.cart.CartFragment" android:label="@string/cart_title" />
     <fragment android:id="@+id/sellerProductListFragment"
         android:name="com.rescuefarm.ui.product.SellerProductListFragment" android:label="@string/seller_products_title">
         <action android:id="@+id/action_sellerProductListFragment_to_productEditorFragment"

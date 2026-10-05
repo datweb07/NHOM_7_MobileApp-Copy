@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/rescue_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_lg">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/cart_title" android:textAppearance="@style/TextAppearance.RescueFarm.Display" />
+        <TextView android:id="@+id/cartOwnerText" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:textColor="@color/rescue_on_surface_variant" />
+        <TextView android:id="@+id/cartSyncText" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_sm"
+            android:padding="@dimen/space_sm" android:background="@color/rescue_primary_container" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="@dimen/space_md">
+            <com.google.android.material.button.MaterialButton android:id="@+id/cartRefreshButton"
+                android:layout_width="0dp" android:layout_height="@dimen/touch_target_min"
+                android:layout_weight="1" android:text="@string/cart_revalidate_action" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/cartClearButton"
+                style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content"
+                android:layout_height="@dimen/touch_target_min" android:text="@string/cart_clear_action" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/cartSellerGroups" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_md"
+            android:orientation="vertical" />
+        <TextView android:id="@+id/cartSummaryText" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_lg"
+            android:textStyle="bold" android:textSize="18sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_sm" android:text="@string/cart_no_reservation_notice"
+            android:textColor="@color/rescue_on_surface_variant" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

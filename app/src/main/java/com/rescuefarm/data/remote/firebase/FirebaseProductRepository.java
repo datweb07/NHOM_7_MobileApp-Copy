@@ -327,6 +327,29 @@ public class FirebaseProductRepository implements ProductRepository {
                 .addOnFailureListener(error -> notifyFailure(error, callback::onError));
     }
 
+    @Override public void getCartQuote(String productId, String batchId, CartQuoteCallback callback) {
+        firestore.collection(PRODUCTS).document(productId).get().addOnSuccessListener(productSnapshot -> {
+            Product product = productSnapshot.exists() ? mapProduct(productSnapshot) : null;
+            if (product == null) { callback.onError(ErrorCode.NOT_FOUND, "Sản phẩm không còn khả dụng."); return; }
+            firestore.collection(BATCHES).document(batchId).get().addOnSuccessListener(batchSnapshot -> {
+                ProductBatch batch = batchSnapshot.exists() ? mapBatch(batchSnapshot) : null;
+                if (batch == null || !productId.equals(batch.getProductId())) {
+                    callback.onError(ErrorCode.NOT_FOUND, "Batch không còn khả dụng."); return;
+                }
+                firestore.collection(PROMOTIONS).document(productId).get()
+                        .addOnSuccessListener(promotionSnapshot -> callback.onSuccess(product, batch,
+                                promotionSnapshot.exists() ? mapPromotion(promotionSnapshot) : null))
+                        .addOnFailureListener(error -> {
+                            if (error instanceof FirebaseFirestoreException
+                                    && ((FirebaseFirestoreException) error).getCode()
+                                    == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                                callback.onSuccess(product, batch, null);
+                            } else notifyFailure(error, callback::onError);
+                        });
+            }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+        }).addOnFailureListener(error -> notifyFailure(error, callback::onError));
+    }
+
     private void fallbackProduct(String productId, ProductCallback callback) {
         cacheExecutor.execute(() -> {
             ProductCacheEntity cached = dao.findProduct(productId);

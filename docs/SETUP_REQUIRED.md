@@ -28,3 +28,7 @@ Foreground location permissions and `FusedLocationProviderClient` are intentiona
 ## Promotion pricing
 
 Phase 8 không cần dịch vụ hay dependency mới. Deploy Firestore rules và kiểm tra schema theo `docs/PHASE8_SETUP.md`.
+
+## Cart sync
+
+Phase 9 không cần dependency hay Room migration mới. Deploy Firestore rules cho `customerCarts` và kiểm tra theo `docs/PHASE9_SETUP.md`.
