@@ -19,4 +19,4 @@ Activity / Fragment -> ViewModel -> Repository -> Room / Firebase
 
 Domain objects expose public no-argument constructors where a mapper may need them, but sensitive quantities are not exposed through unconditional public setters. Firestore integration should deserialize into remote DTO/map data inside the repository and then construct domain objects through validated methods. This adds explicit mapping code but prevents Firestore convenience from bypassing inventory and campaign invariants.
 
-The 25 classes under `domain/model` are the complete business model. Room cache entities, repositories, services, ViewModels, and UI classes are infrastructure and do not extend that list.
+The 25 classes under `domain/model` are the complete business model. Room cache entities, repositories, services, ViewModels, and UI classes are infrastructure and do not extend that list. Phase 18 freezes this contract; regression coverage is indexed in [`PHASE18_TESTING_DEMO.md`](PHASE18_TESTING_DEMO.md).

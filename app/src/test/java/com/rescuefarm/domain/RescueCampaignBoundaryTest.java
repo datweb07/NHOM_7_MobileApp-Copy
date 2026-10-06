@@ -7,6 +7,7 @@ import com.rescuefarm.domain.enums.RescueReason;
 import com.rescuefarm.domain.enums.UrgencyLevel;
 import com.rescuefarm.domain.model.RescueCampaign;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
@@ -35,6 +36,26 @@ public class RescueCampaignBoundaryTest {
         assertThrows(IllegalArgumentException.class, () -> value.defineCampaign("Campaign", "",
                 RescueReason.DEMAND_DROP, RescueMode.FIXED_POINT,
                 Collections.singletonMap("b", 99D)));
+    }
+    @Test public void campaignNeedsReasonAndAtLeastOneBatch() {
+        RescueCampaign missingReason = new RescueCampaign("c", "s", 10D);
+        assertThrows(IllegalArgumentException.class, () -> missingReason.defineCampaign(
+                "Campaign", "", null, RescueMode.FIXED_POINT,
+                Collections.singletonMap("b", 10D)));
+
+        RescueCampaign noBatches = new RescueCampaign("c", "s", 10D);
+        assertThrows(IllegalArgumentException.class, () -> noBatches.defineCampaign(
+                "Campaign", "", RescueReason.OVER_SUPPLY, RescueMode.FIXED_POINT,
+                new HashMap<>()));
+    }
+    @Test public void campaignSubmission_startsPendingApproval() {
+        RescueCampaign value = new RescueCampaign("c", "s", 10D);
+        Date now = new Date();
+        value.defineCampaign("Campaign", "", RescueReason.OVER_SUPPLY,
+                RescueMode.MOBILE_POINT, Collections.singletonMap("b", 10D));
+        value.schedule(now, new Date(now.getTime() + TimeUnit.DAYS.toMillis(1)));
+        value.submitForApproval();
+        assertEquals(CampaignStatus.PENDING_APPROVAL, value.getStatus());
     }
     @Test public void exactTenMinuteLocation_isFreshButFutureIsNot() {
         Date update = new Date(1_000_000L);

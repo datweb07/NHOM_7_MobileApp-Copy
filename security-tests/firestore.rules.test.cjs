@@ -9,6 +9,7 @@ const {
 } = require('@firebase/rules-unit-testing');
 const {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -78,6 +79,12 @@ test.beforeEach(async () => {
     await setDoc(doc(db, 'orders/existing-customer-order'), customerOrder({
       id: 'existing-customer-order', requestId: 'existing-customer-order',
     }));
+    await setDoc(doc(db, 'orders/existing-customer-order/items/batch-1'), {
+      id: 'batch-1', orderId: 'existing-customer-order', batchId: 'batch-1',
+    });
+    await setDoc(doc(db, 'payments/existing-customer-order'), {
+      id: 'existing-customer-order', orderId: 'existing-customer-order', amount: 20,
+    });
   });
 });
 
@@ -179,6 +186,13 @@ test('customer cannot write admin moderation metadata to their profile', async (
     moderatedBy: 'customer-1', moderatedAt: serverTimestamp(),
     moderationReason: 'self-approved', updatedAt: serverTimestamp(),
   }));
+});
+
+test('transactional order, item, and payment records cannot be hard-deleted', async () => {
+  const customer = environment.authenticatedContext('customer-1').firestore();
+  await assertFails(deleteDoc(doc(customer, 'orders/existing-customer-order')));
+  await assertFails(deleteDoc(doc(customer, 'orders/existing-customer-order/items/batch-1')));
+  await assertFails(deleteDoc(doc(customer, 'payments/existing-customer-order')));
 });
 
 test('unknown and credential-like product fields are rejected', async () => {

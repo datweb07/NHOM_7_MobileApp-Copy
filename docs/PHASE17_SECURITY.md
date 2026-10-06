@@ -19,7 +19,7 @@ The Android app installs the App Check Debug provider only in debug builds and P
 3. Install a Play-distributed/internal-testing build on a supported device and verify valid App Check traffic in Firebase metrics.
 4. For local debug builds, copy the debug token printed in Logcat and register it as an App Check debug token. Do not commit or share this token. For release, monitor Play Integrity metrics before enabling enforcement for Firestore. Enforcement blocks clients without valid App Check tokens.
 
-Do not commit App Check debug tokens. The `debugImplementation` dependency and `BuildConfig.DEBUG` branch keep this provider out of release builds; release installs Play Integrity only.
+Do not commit App Check debug tokens. The debug and release installer classes live in separate Android source sets, and the debug-only dependency keeps the Debug provider out of release builds; release installs Play Integrity only.
 
 ## Tests
 
@@ -30,7 +30,7 @@ npm --prefix security-tests install
 firebase emulators:exec --only firestore --project demo-rescuefarm-security "npm --prefix security-tests test"
 ```
 
-The `demo-` project ID and emulator ensure these tests do not access production data. Tests cover guest read/write denial, order ownership, an allowed atomic checkout, cross-seller reservation rejection, seller self-approval denial, and unknown/credential-like product fields.
+The `demo-` project ID and emulator ensure these tests do not access production data. Tests cover guest read/write denial, order ownership, an allowed atomic checkout, cross-seller reservation rejection, seller self-approval/inventory-forgery denial, profile moderation-field denial, hard-delete denial for order/item/payment records, and unknown/credential-like product fields.
 
 ## Guest checkout and trusted pricing limits
 
